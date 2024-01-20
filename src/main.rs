@@ -178,6 +178,13 @@ impl PlayingState {
             draw_rect(b.center(), b.size(), DARKGREEN, 1);
         }
 
+        for b in self.hitboxes() {
+            if let Some(b) = b {
+                // TODO: Not pixel perfect, border extends past hitbox.
+                draw_rect_outline(b.center(), b.size(), 0.01, DARKRED, 2);
+            }
+        }
+
         draw_rect(Vec2{ x: -0.75, y: 0.4 }, Vec2{ x: self.players[0].health as f32 / 10.0, y: 0.05 }, DARKGREEN, 1);
         draw_rect(Vec2{ x: 0.75, y: 0.4 }, Vec2{ x: self.players[1].health as f32 / 10.0, y: 0.05 }, DARKGREEN, 1);
     }
