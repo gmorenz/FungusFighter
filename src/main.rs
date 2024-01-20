@@ -67,9 +67,12 @@ fn setup(_state: &mut GameState, _c: &mut EngineContext) {
 fn update(state: &mut GameState, _c: &mut EngineContext) {
     match state {
         GameState::Playing(playing_state) => {
-            if let Some(new_state) = playing_state.update() {
+            let state_transition = playing_state.update();
+            playing_state.render();
+            if let Some(new_state) = state_transition {
                 *state = new_state;
             }
+
         }
         GameState::ScoreScreen { winner } => {
             clear_background(WHITE);
@@ -81,11 +84,9 @@ fn update(state: &mut GameState, _c: &mut EngineContext) {
 
 impl PlayingState {
     fn update(&mut self) -> Option<GameState> {
-        let players = &mut self.players;
-
         // Transition states
 
-        for (i, p) in players.iter_mut().enumerate() {
+        for (i, p) in self.players.iter_mut().enumerate() {
             if p.health == 0 {
                 return Some(GameState::ScoreScreen { winner: 1 - i });
             }
@@ -103,42 +104,34 @@ impl PlayingState {
 
         // HANDLE INPUT
 
-        if matches!(players[0].state, PlayerState::Idle) {
+        if matches!(self.players[0].state, PlayerState::Idle) {
             if is_key_down(KeyCode::Space) {
-                players[0].state = PlayerState::Attacking{ frame: 0 };
+                self.players[0].state = PlayerState::Attacking{ frame: 0 };
             } else {
                 match (is_key_down(KeyCode::A), is_key_down(KeyCode::D)) {
                     // TODO: Check if this is framerate dependent.
-                    (true, false) => players[0].move_(-PLAYER_SPEED),
-                    (false, true) => players[0].move_(PLAYER_SPEED),
+                    (true, false) => self.players[0].move_(-PLAYER_SPEED),
+                    (false, true) => self.players[0].move_(PLAYER_SPEED),
                     (true, true) | (false, false) => (),
                 }
             }
         }
 
-        if matches!(players[1].state, PlayerState::Idle) {
+        if matches!(self.players[1].state, PlayerState::Idle) {
             if is_key_down(KeyCode::Down) {
-                players[1].state = PlayerState::Attacking{ frame: 0 };
+                self.players[1].state = PlayerState::Attacking{ frame: 0 };
             } else {
                 match (is_key_down(KeyCode::Left), is_key_down(KeyCode::Right)) {
-                    (true, false) => players[1].move_(-PLAYER_SPEED),
-                    (false, true) => players[1].move_(PLAYER_SPEED),
+                    (true, false) => self.players[1].move_(-PLAYER_SPEED),
+                    (false, true) => self.players[1].move_(PLAYER_SPEED),
                     (true, true) | (false, false) => (),
                 }
             }
         }
 
         // Handle attacks
-
-        let hurtboxes = players.each_ref().map(|p| match &p.state {
-            PlayerState::Idle => AABB::from_center_size(Vec2{ x: p.loc, y: 0.0 }, IDLE_HURTBOX),
-            PlayerState::AttackConnected{ .. } | PlayerState::Attacking { .. } => AABB::from_center_size(p.center(), ATTACK_HURTBOX),
-        });
-
-        let hitboxes = players.each_ref().map(|p| match &p.state {
-            PlayerState::AttackConnected{ .. } | PlayerState::Idle => None,
-            PlayerState::Attacking{ .. } => Some(AABB::from_center_size(p.center(), ATTACK_HITBOX)),
-        });
+        let hurtboxes = self.hurtboxes();
+        let hitboxes = self.hitboxes();
 
         let hits = [
             hitboxes[0].is_some_and(|hitbox| hitbox.intersects(&hurtboxes[1])),
@@ -146,31 +139,46 @@ impl PlayingState {
         ];
 
         match hits {
-            [true, true] => for p in players.iter_mut() {
+            [true, true] => for p in self.players.iter_mut() {
                 p.state = PlayerState::AttackConnected{ frame: 0 };
             },
             [true, false] => {
-                players[0].state = PlayerState::AttackConnected{ frame: 0 };
-                players[1].health = players[1].health.saturating_sub(1);
+                self.players[0].state = PlayerState::AttackConnected{ frame: 0 };
+                self.players[1].health = self.players[1].health.saturating_sub(1);
             },
             [false, true] => {
-                players[1].state = PlayerState::AttackConnected{ frame: 0 };
-                players[0].health = players[0].health.saturating_sub(1);
+                self.players[1].state = PlayerState::AttackConnected{ frame: 0 };
+                self.players[0].health = self.players[0].health.saturating_sub(1);
             },
             [false, false] => (),
         }
 
-        // RENDER
+        None
+    }
 
+    fn hitboxes(&self) -> [Option<AABB>; 2] {
+        self.players.each_ref().map(|p| match &p.state {
+            PlayerState::AttackConnected{ .. } | PlayerState::Idle => None,
+            PlayerState::Attacking{ .. } => Some(AABB::from_center_size(p.center(), ATTACK_HITBOX)),
+        })
+    }
+
+
+    fn hurtboxes(&self) -> [AABB; 2] {
+        self.players.each_ref().map(|p| match &p.state {
+            PlayerState::Idle => AABB::from_center_size(Vec2{ x: p.loc, y: 0.0 }, IDLE_HURTBOX),
+            PlayerState::AttackConnected{ .. } | PlayerState::Attacking { .. } => AABB::from_center_size(p.center(), ATTACK_HURTBOX),
+        })
+    }
+
+    fn render(&self) {
         clear_background(WHITE);
 
-        for b in hurtboxes {
+        for b in self.hurtboxes() {
             draw_rect(b.center(), b.size(), DARKGREEN, 1);
         }
 
-        draw_rect(Vec2{ x: -0.75, y: 0.4 }, Vec2{ x: players[0].health as f32 / 10.0, y: 0.05 }, DARKGREEN, 1);
-        draw_rect(Vec2{ x: 0.75, y: 0.4 }, Vec2{ x: players[1].health as f32 / 10.0, y: 0.05 }, DARKGREEN, 1);
-
-        None
+        draw_rect(Vec2{ x: -0.75, y: 0.4 }, Vec2{ x: self.players[0].health as f32 / 10.0, y: 0.05 }, DARKGREEN, 1);
+        draw_rect(Vec2{ x: 0.75, y: 0.4 }, Vec2{ x: self.players[1].health as f32 / 10.0, y: 0.05 }, DARKGREEN, 1);
     }
 }
