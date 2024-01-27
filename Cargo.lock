@@ -494,6 +494,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b55b28713b87d1808d04df17a4df54e7fe2d98faf538e08823bb63a80d99dc6"
 dependencies = [
  "comfy_include_dir_macros",
+ "glob",
 ]
 
 [[package]]
@@ -975,6 +976,7 @@ name = "fungus_fighter"
 version = "0.1.0"
 dependencies = [
  "comfy",
+ "comfy_include_dir",
 ]
 
 [[package]]

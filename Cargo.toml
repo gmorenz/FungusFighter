@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 comfy = "0.3.1"
+comfy_include_dir = { version = "0.7.3", features = ["glob"] }
