@@ -2,7 +2,9 @@
 
 mod animation;
 
-use animation::{load_animation, Animation, IDLE_ANIMATION};
+use std::ops::ControlFlow;
+
+use animation::{load_animation, Animation, ATTACK_ANIMATION, IDLE_ANIMATION, RECOIL_ANIMATION};
 use comfy::include_dir::{include_dir, Dir, DirEntry};
 use comfy::*;
 
@@ -17,12 +19,12 @@ const SPRITE_PIXELS_PER_WINDOW_POINT: f32 = 30. / 0.2;
 // const ATTACK_HURTBOX: Vec2 = Vec2 { x: 0.3, y: 0.4 };
 // const ATTACK_HITBOX: Vec2 = Vec2 { x: 0.325, y: 0.35 };
 const PLAYER_SPEED: f32 = 0.01;
-const ATTACK_DURATION: u32 = 30;
+// const ATTACK_DURATION: u32 = 30;
 
 enum PlayerState {
     Idle,
-    AttackConnected { frame: u32 },
-    Attacking { frame: u32 },
+    Recoiling,
+    Attacking,
 }
 
 struct Player {
@@ -114,14 +116,8 @@ impl PlayingState {
             }
 
             // TODO: Handle return
-            p.animation.next_frame();
-
-            use PlayerState::*;
-            p.state = match p.state {
-                Idle => Idle,
-                AttackConnected { frame } | Attacking { frame } if frame >= ATTACK_DURATION => Idle,
-                Attacking { frame } => Attacking { frame: frame + 1 },
-                AttackConnected { frame } => AttackConnected { frame: frame + 1 },
+            if matches!(p.animation.next_frame(), ControlFlow::Break(())) {
+                p.start_idle();
             }
         }
 
@@ -129,7 +125,7 @@ impl PlayingState {
 
         if matches!(self.players[0].state, PlayerState::Idle { .. }) {
             if is_key_down(KeyCode::Space) {
-                self.players[0].state = PlayerState::Attacking { frame: 0 };
+                self.players[0].start_attack();
             } else {
                 match (is_key_down(KeyCode::A), is_key_down(KeyCode::D)) {
                     // TODO: Check if this is framerate dependent.
@@ -142,7 +138,7 @@ impl PlayingState {
 
         if matches!(self.players[1].state, PlayerState::Idle { .. }) {
             if is_key_down(KeyCode::Down) {
-                self.players[1].state = PlayerState::Attacking { frame: 0 };
+                self.players[1].start_attack();
             } else {
                 match (is_key_down(KeyCode::Left), is_key_down(KeyCode::Right)) {
                     (true, false) => self.players[1].move_(-PLAYER_SPEED),
@@ -157,23 +153,23 @@ impl PlayingState {
         let hitboxes = self.hitboxes();
 
         let hits = [
-            hitboxes[0].is_some_and(|hitbox| hitbox.intersects(&hurtboxes[1])),
-            hitboxes[1].is_some_and(|hitbox| hitbox.intersects(&hurtboxes[0])),
+            hitboxes[0].zip(hurtboxes[1]).is_some_and(|(hit, hurt)| hit.intersects(&hurt)),
+            hitboxes[1].zip(hurtboxes[0]).is_some_and(|(hit, hurt)| hit.intersects(&hurt)),
         ];
 
         match hits {
             [true, true] => {
                 for p in self.players.iter_mut() {
-                    p.state = PlayerState::AttackConnected { frame: 0 };
+                    p.start_recoil();
                 }
             }
             [true, false] => {
-                self.players[0].state = PlayerState::AttackConnected { frame: 0 };
                 self.players[1].health = self.players[1].health.saturating_sub(1);
+                self.players[1].start_recoil();
             }
             [false, true] => {
-                self.players[1].state = PlayerState::AttackConnected { frame: 0 };
                 self.players[0].health = self.players[0].health.saturating_sub(1);
+                self.players[0].start_recoil();
             }
             [false, false] => (),
         }
@@ -185,7 +181,7 @@ impl PlayingState {
         self.players.each_ref().map(|p| p.hitbox())
     }
 
-    fn hurtboxes(&self) -> [AABB; 2] {
+    fn hurtboxes(&self) -> [Option<AABB>; 2] {
         self.players.each_ref().map(|p| p.hurtbox())
     }
 
@@ -193,7 +189,9 @@ impl PlayingState {
         clear_background(WHITE);
 
         for b in self.hurtboxes() {
-            draw_rect_outline(b.center(), b.size(), 0.01, DARKGREEN, 1);
+            if let Some(b) = b {
+                draw_rect_outline(b.center(), b.size(), 0.01, DARKGREEN, 1);
+            }
         }
 
         for b in self.hitboxes() {
@@ -242,17 +240,31 @@ impl Player {
     }
 
     fn hitbox(&self) -> Option<AABB> {
-        self.animation
-            .sprite()
-            .hitbox
-            .map(|hitbox| AABB::from_center_size(self.center(), hitbox))
+        let hb = self.animation.sprite().hitbox?;
+        Some(AABB::from_center_size(self.center(), hb))
     }
 
-    fn hurtbox(&self) -> AABB {
-        AABB::from_center_size(self.center(), self.animation.sprite().hurtbox)
+    fn hurtbox(&self) -> Option<AABB> {
+        let hb = self.animation.sprite().hurtbox?;
+        Some(AABB::from_center_size(self.center(), hb))
     }
 
     fn render_sprite(&self) {
         self.animation.render(self.center());
+    }
+
+    fn start_attack(&mut self) {
+        self.state = PlayerState::Attacking;
+        self.animation = load_animation(ATTACK_ANIMATION);
+    }
+
+    fn start_idle(&mut self) {
+        self.state = PlayerState::Idle;
+        self.animation = load_animation(IDLE_ANIMATION);
+    }
+
+    fn start_recoil(&mut self) {
+        self.state = PlayerState::Recoiling;
+        self.animation = load_animation(RECOIL_ANIMATION);
     }
 }

@@ -27,6 +27,7 @@ struct AnnotatedSpriteParams {
     x: u32,
     y: u32,
 
+    hurtbox: bool,
     hitbox: Option<Vec2>,
     duration: usize,
 }
@@ -40,7 +41,8 @@ pub struct AnnotatedSprite {
     texture: TextureHandle,
     source_rect: IRect,
     pub hitbox: Option<Vec2>,
-    pub hurtbox: Vec2,
+    pub hurtbox: Option<Vec2>,
+    pub size: Vec2,
     duration: usize,
 }
 
@@ -61,7 +63,6 @@ pub fn load_animation(params: AnimationParams) -> Animation {
 }
 
 fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
-    dbg!(params.sprite_sheet.texture);
     let texture = texture_id(params.sprite_sheet.texture);
     let assets_lock = ASSETS.borrow();
     let images_lock = assets_lock.texture_image_map.lock();
@@ -105,12 +106,13 @@ fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
 
     AnnotatedSprite {
         texture,
-        source_rect: dbg!(IRect {
+        source_rect: IRect {
             offset: sprite_offset,
             size: sprite_size
-        }),
-        hurtbox: hurtbox,
+        },
+        hurtbox: params.hurtbox.then(|| hurtbox),
         hitbox: params.hitbox,
+        size: hurtbox,
         duration: params.duration,
     }
 }
@@ -121,7 +123,7 @@ pub const IDLE_ANIMATION: AnimationParams = AnimationParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_0"),
             x: 0,
             y: 0,
-
+            hurtbox: true,
             hitbox: None,
             duration: 10,
         },
@@ -129,7 +131,7 @@ pub const IDLE_ANIMATION: AnimationParams = AnimationParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_1"),
             x: 0,
             y: 0,
-
+            hurtbox: true,
             hitbox: None,
             duration: 10,
         },
@@ -137,7 +139,7 @@ pub const IDLE_ANIMATION: AnimationParams = AnimationParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_2"),
             x: 0,
             y: 0,
-
+            hurtbox: true,
             hitbox: None,
             duration: 10,
         },
@@ -145,7 +147,7 @@ pub const IDLE_ANIMATION: AnimationParams = AnimationParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_3"),
             x: 0,
             y: 0,
-
+            hurtbox: true,
             hitbox: None,
             duration: 10,
         },
@@ -153,12 +155,108 @@ pub const IDLE_ANIMATION: AnimationParams = AnimationParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_4"),
             x: 0,
             y: 0,
-
+            hurtbox: true,
             hitbox: None,
             duration: 10,
         },
     ],
     looping: true,
+};
+
+const ATTACK_SPRITES: SpriteSheetParams  = SpriteSheetParams {
+    texture: "F00_Attack_0",
+    count_x: 2,
+    count_y: 3,
+};
+
+pub const ATTACK_ANIMATION: AnimationParams = AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: ATTACK_SPRITES,
+            x: 0,
+            y: 0,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: ATTACK_SPRITES,
+            x: 1,
+            y: 0,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: ATTACK_SPRITES,
+            x: 0,
+            y: 1,
+            hurtbox: true,
+            hitbox: Some(Vec2 { x: 0.4, y: 0.2 }),
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: ATTACK_SPRITES,
+            x: 1,
+            y: 1,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: ATTACK_SPRITES,
+            x: 0,
+            y: 2,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+    ],
+    looping: false,
+};
+
+const RECOIL_SPRITES: SpriteSheetParams  = SpriteSheetParams {
+    texture: "F00_Damage",
+    count_x: 2,
+    count_y: 2,
+};
+
+pub const RECOIL_ANIMATION: AnimationParams = AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: RECOIL_SPRITES,
+            x: 0,
+            y: 0,
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: RECOIL_SPRITES,
+            x: 1,
+            y: 0,
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: RECOIL_SPRITES,
+            x: 0,
+            y: 1,
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: RECOIL_SPRITES,
+            x: 1,
+            y: 1,
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        },
+    ],
+    looping: false,
 };
 
 impl Animation {
@@ -190,7 +288,7 @@ impl Animation {
             WHITE,
             2,
             DrawTextureParams {
-                dest_size: Some(sprite.hurtbox.as_world_size()),
+                dest_size: Some(sprite.size.as_world_size()),
                 source_rect: Some(sprite.source_rect),
                 scroll_offset: Vec2::ZERO,
                 rotation: 0.,
