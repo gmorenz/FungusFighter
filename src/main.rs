@@ -27,7 +27,14 @@ enum PlayerState {
     Attacking,
 }
 
+#[derive(Clone, Copy)]
+enum Direction {
+    East,
+    West,
+}
+
 struct Player {
+    facing: Direction,
     loc: f32,
     health: u32,
 
@@ -75,12 +82,14 @@ fn update(state: &mut GameState, c: &mut EngineContext) {
             *state = GameState::Playing(PlayingState {
                 players: [
                     Player {
+                        facing: Direction::East,
                         animation: load_animation(IDLE_ANIMATION),
                         loc: -0.5,
                         state: PlayerState::Idle,
                         health: 3,
                     },
                     Player {
+                        facing: Direction::West,
                         animation: load_animation(IDLE_ANIMATION),
                         loc: 0.5,
                         state: PlayerState::Idle,
@@ -250,7 +259,7 @@ impl Player {
     }
 
     fn render_sprite(&self) {
-        self.animation.render(self.center());
+        self.animation.render(self.center(), self.facing);
     }
 
     fn start_attack(&mut self) {

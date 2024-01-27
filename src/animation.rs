@@ -4,7 +4,7 @@ use std::ops::ControlFlow;
 use comfy::image::GenericImageView;
 use comfy::*;
 
-use crate::SPRITE_PIXELS_PER_WINDOW_POINT;
+use crate::{Direction, SPRITE_PIXELS_PER_WINDOW_POINT};
 
 struct SpriteSheetParams {
     texture: &'static str,
@@ -280,7 +280,8 @@ impl Animation {
         &self.sprites[self.sprite_index]
     }
 
-    pub fn render(&self, location: Vec2) {
+    /// Player 1 faces right (no flip); player 2 faces left (flip).
+    pub fn render(&self, location: Vec2, facing: Direction) {
         let sprite = self.sprite();
         draw_sprite_ex(
             sprite.texture,
@@ -292,7 +293,7 @@ impl Animation {
                 source_rect: Some(sprite.source_rect),
                 scroll_offset: Vec2::ZERO,
                 rotation: 0.,
-                flip_x: false, // TODO
+                flip_x: matches!(facing, Direction::West),
                 flip_y: false,
                 pivot: None,
                 blend_mode: BlendMode::Alpha,
