@@ -1,0 +1,10 @@
+NOW:
+
+[x] load anims once at start;
+    lookup by some sort of ~~label~~ field when you need them
+[x] keep the sprites and looping flag (animation "data") behind a
+    refcounted pointer to make clones cheaper
+[x] local mode, to make testing easier
+
+[ ] walking anim
+
