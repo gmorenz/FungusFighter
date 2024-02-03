@@ -5,10 +5,14 @@ mod animation;
 use std::ops::ControlFlow;
 
 use animation::{load_animation, Animation, ATTACK_ANIMATION, IDLE_ANIMATION, RECOIL_ANIMATION};
+use bytemuck::Pod;
+use comfy::bytemuck::Zeroable;
 use comfy::include_dir::{include_dir, Dir, DirEntry};
 use comfy::*;
+use ggrs::{DesyncDetection, GgrsError, P2PSession, PlayerHandle, SessionBuilder, SessionState};
+use matchbox_socket::{PeerId, WebRtcSocket};
 
-simple_game!("Fighting Fungus", GameState, setup, update);
+simple_game!("Fighting Fungus", App, setup, update);
 
 /// The screen is always [-1, 1]
 ///
@@ -21,6 +25,7 @@ const SPRITE_PIXELS_PER_WINDOW_POINT: f32 = 30. / 0.2;
 const PLAYER_SPEED: f32 = 0.01;
 // const ATTACK_DURATION: u32 = 30;
 
+#[derive(Clone)]
 enum PlayerState {
     Idle,
     Recoiling,
@@ -33,6 +38,7 @@ enum Direction {
     West,
 }
 
+#[derive(Clone)]
 struct Player {
     facing: Direction,
     loc: f32,
@@ -43,25 +49,79 @@ struct Player {
     state: PlayerState,
 }
 
+enum App {
+    Loading { socket: Option<WebRtcSocket> },
+    InGame(Game),
+}
+
+struct Game {
+    session: P2PSession<GGRSConfig>,
+    local_player: PlayerHandle,
+
+    // time variables for tick rate
+    last_update: Instant,
+    accumulator: Duration,
+
+    state: GameState,
+}
+
+#[derive(Clone)]
 enum GameState {
-    Loading,
     Playing(PlayingState),
     ScoreScreen { winner: usize },
 }
 
+#[derive(Clone)]
 struct PlayingState {
     players: [Player; 2],
 }
 
-impl GameState {
+/// `GGRSConfig` holds all type parameters for GGRS Sessions
+#[derive(Debug)]
+struct GGRSConfig;
+impl ggrs::Config for GGRSConfig {
+    type Input = Input;
+    type State = GameState;
+    type Address = PeerId;
+}
+
+#[repr(C)]
+#[derive(PartialEq, Eq, Copy, Clone, Pod, Zeroable)]
+pub struct Input {
+    /// Bit 0: left
+    ///
+    /// Bit 1: right
+    ///
+    /// Bit 2: attack
+    // TODO: Bitfield crate? Needs to be ": Pod"
+    input_bits: u8,
+}
+
+impl Input {
+    const LEFT: u8 = 0b001;
+    const RIGHT: u8 = 0b010;
+    const ATTACK: u8 = 0b100;
+}
+
+impl App {
     fn new(_e: &mut EngineState) -> Self {
-        GameState::Loading
+        info!("Constructing socket...");
+        // TODO: Use builder, more channels.
+        let (socket, message_loop) = WebRtcSocket::new_ggrs("wss://fire.droid.cafe");
+        std::thread::spawn(move || {
+            futures_lite::future::block_on(message_loop).unwrap();
+            panic!("Network socket message loop exited");
+        });
+
+        App::Loading {
+            socket: Some(socket),
+        }
     }
 }
 
 static ASSETS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/assets");
 
-fn setup(_state: &mut GameState, c: &mut EngineContext) {
+fn setup(_app: &mut App, c: &mut EngineContext) {
     let mut camera = main_camera_mut();
     camera.zoom = 2.0;
 
@@ -76,47 +136,189 @@ fn setup(_state: &mut GameState, c: &mut EngineContext) {
     }
 }
 
-fn update(state: &mut GameState, c: &mut EngineContext) {
-    match state {
-        GameState::Loading => {
-            *state = GameState::Playing(PlayingState {
-                players: [
-                    Player {
-                        facing: Direction::East,
-                        animation: load_animation(IDLE_ANIMATION),
-                        loc: -0.5,
-                        state: PlayerState::Idle,
-                        health: 3,
-                    },
-                    Player {
-                        facing: Direction::West,
-                        animation: load_animation(IDLE_ANIMATION),
-                        loc: 0.5,
-                        state: PlayerState::Idle,
-                        health: 3,
-                    },
-                ],
-            });
-            return update(state, c);
-        }
+fn update(app: &mut App, _c: &mut EngineContext) {
+    match app {
+        App::Loading { socket } => {
+            let socket_ref = socket.as_mut().unwrap();
+            socket_ref.update_peers();
+            let connected_count = socket_ref.connected_peers().count();
+            println!("Waiting for {} more player(s)...", 2 - connected_count);
 
-        GameState::Playing(playing_state) => {
-            let state_transition = playing_state.update();
-            playing_state.render();
-            if let Some(new_state) = state_transition {
-                *state = new_state;
+            if connected_count == 2 {
+                let mut session = SessionBuilder::<GGRSConfig>::new()
+                    .with_num_players(2)
+                    .with_desync_detection_mode(DesyncDetection::On { interval: 100 })
+                    .with_fps(60)
+                    .unwrap();
+
+                let mut socket = socket.take().unwrap();
+                for (i, player) in socket.players().into_iter().enumerate() {
+                    session = session.add_player(player, i).unwrap();
+                }
+
+                let session = session.start_p2p_session(socket).unwrap();
+
+                let (local_player,) = session
+                    .local_player_handles()
+                    .into_iter()
+                    .collect_tuple()
+                    .unwrap();
+                *app = App::InGame(Game {
+                    session,
+                    local_player,
+
+                    last_update: Instant::now(),
+                    accumulator: Duration::ZERO,
+
+                    state: GameState::Playing(PlayingState {
+                        players: [
+                            Player {
+                                facing: Direction::East,
+                                animation: load_animation(IDLE_ANIMATION),
+                                loc: -0.5,
+                                state: PlayerState::Idle,
+                                health: 3,
+                            },
+                            Player {
+                                facing: Direction::West,
+                                animation: load_animation(IDLE_ANIMATION),
+                                loc: 0.5,
+                                state: PlayerState::Idle,
+                                health: 3,
+                            },
+                        ],
+                    }),
+                });
             }
         }
-        GameState::ScoreScreen { winner } => {
-            clear_background(WHITE);
-            let msg = format!("Player {} won!", *winner + 1);
-            draw_text(&msg, Vec2::ZERO, BLACK, TextAlign::Center);
+        App::InGame(game) => game.update(),
+    }
+}
+
+const FPS: f64 = 60.0;
+
+impl Game {
+    fn update(&mut self) {
+        // communicate, receive and send packets
+        self.session.poll_remote_clients();
+
+        // print GGRS events
+        for event in self.session.events() {
+            println!("Event: {:?}", event);
+        }
+
+        // this is to keep ticks between clients synchronized.
+        // if a client is ahead, it will run frames slightly slower to allow catching up
+        let mut fps_delta = 1. / FPS;
+        if self.session.frames_ahead() > 0 {
+            fps_delta *= 1.1;
+        }
+
+        // get delta time from last iteration and accumulate it
+        // note: greg hates this
+        let delta = Instant::now().duration_since(self.last_update);
+        self.accumulator = self.accumulator.saturating_add(delta);
+        self.last_update = Instant::now();
+
+        // if enough time is accumulated, we run a frame
+        while self.accumulator.as_secs_f64() > fps_delta {
+            // decrease accumulator
+            self.accumulator = self
+                .accumulator
+                .saturating_sub(Duration::from_secs_f64(fps_delta));
+
+            // frames are only happening if the sessions are synchronized
+            if self.session.current_state() == SessionState::Running {
+                self.session
+                    .add_local_input(self.local_player, get_local_input())
+                    .unwrap();
+
+                match self.session.advance_frame() {
+                    Ok(requests) => self.handle_requests(requests),
+                    Err(GgrsError::PredictionThreshold) => {
+                        println!("Frame {} skipped", self.session.current_frame())
+                    }
+                    Err(e) => panic!("{}", e),
+                }
+            }
+        }
+
+        self.render();
+    }
+
+    fn handle_requests(&mut self, requests: Vec<ggrs::GgrsRequest<GGRSConfig>>) {
+        for req in requests {
+            match req {
+                ggrs::GgrsRequest::SaveGameState { cell, frame } => {
+                    cell.save(frame, Some(self.state.clone()), None);
+                }
+                ggrs::GgrsRequest::LoadGameState { cell, frame: _ } => {
+                    self.state = cell.load().unwrap();
+                }
+                ggrs::GgrsRequest::AdvanceFrame { inputs } => {
+                    self.advance_frame(inputs);
+                }
+            }
+        }
+    }
+
+    fn render(&self) {
+        match &self.state {
+            GameState::Playing(playing_state) => playing_state.render(),
+            GameState::ScoreScreen { winner } => {
+                clear_background(WHITE);
+                let msg = format!("Player {} won!", *winner + 1);
+                draw_text(&msg, Vec2::ZERO, BLACK, TextAlign::Center);
+            }
+        }
+    }
+
+    fn advance_frame(&mut self, inputs: Vec<(Input, ggrs::InputStatus)>) {
+        match &mut self.state {
+            GameState::Playing(playing_state) => {
+                let state_transition = playing_state.update(inputs);
+                if let Some(new_state) = state_transition {
+                    self.state = new_state;
+                }
+            }
+            // TODO: start the next round at some point
+            GameState::ScoreScreen { .. } => (),
         }
     }
 }
 
+fn get_local_input() -> Input {
+    let mut bits = 0u8;
+
+    if is_key_down(KeyCode::A) {
+        bits |= Input::LEFT;
+    }
+    if is_key_down(KeyCode::D) {
+        bits |= Input::RIGHT;
+    }
+    if is_key_down(KeyCode::Space) {
+        bits |= Input::ATTACK;
+    }
+
+    Input { input_bits: bits }
+}
+
+impl Input {
+    fn is_attack_pressed(self) -> bool {
+        self.input_bits & Self::ATTACK != 0
+    }
+
+    fn is_left_pressed(self) -> bool {
+        self.input_bits & Self::LEFT != 0
+    }
+
+    fn is_right_pressed(self) -> bool {
+        self.input_bits & Self::RIGHT != 0
+    }
+}
+
 impl PlayingState {
-    fn update(&mut self) -> Option<GameState> {
+    fn update(&mut self, inputs: Vec<(Input, ggrs::InputStatus)>) -> Option<GameState> {
         // Transition states
 
         for (i, p) in self.players.iter_mut().enumerate() {
@@ -132,27 +334,19 @@ impl PlayingState {
 
         // HANDLE INPUT
 
-        if matches!(self.players[0].state, PlayerState::Idle { .. }) {
-            if is_key_down(KeyCode::Space) {
-                self.players[0].start_attack();
-            } else {
-                match (is_key_down(KeyCode::A), is_key_down(KeyCode::D)) {
-                    // TODO: Check if this is framerate dependent.
-                    (true, false) => self.players[0].move_(-PLAYER_SPEED),
-                    (false, true) => self.players[0].move_(PLAYER_SPEED),
-                    (true, true) | (false, false) => (),
-                }
-            }
-        }
-
-        if matches!(self.players[1].state, PlayerState::Idle { .. }) {
-            if is_key_down(KeyCode::Down) {
-                self.players[1].start_attack();
-            } else {
-                match (is_key_down(KeyCode::Left), is_key_down(KeyCode::Right)) {
-                    (true, false) => self.players[1].move_(-PLAYER_SPEED),
-                    (false, true) => self.players[1].move_(PLAYER_SPEED),
-                    (true, true) | (false, false) => (),
+        for i in 0..2 {
+            if matches!(self.players[i].state, PlayerState::Idle { .. }) {
+                if inputs[i].0.is_attack_pressed() {
+                    self.players[i].start_attack();
+                } else {
+                    let left = inputs[i].0.is_left_pressed();
+                    let right = inputs[i].0.is_right_pressed();
+                    match (left, right) {
+                        // TODO: Check if this is framerate dependent.
+                        (true, false) => self.players[i].move_(-PLAYER_SPEED),
+                        (false, true) => self.players[i].move_(PLAYER_SPEED),
+                        (true, true) | (false, false) => (),
+                    }
                 }
             }
         }
@@ -162,8 +356,12 @@ impl PlayingState {
         let hitboxes = self.hitboxes();
 
         let hits = [
-            hitboxes[0].zip(hurtboxes[1]).is_some_and(|(hit, hurt)| hit.intersects(&hurt)),
-            hitboxes[1].zip(hurtboxes[0]).is_some_and(|(hit, hurt)| hit.intersects(&hurt)),
+            hitboxes[0]
+                .zip(hurtboxes[1])
+                .is_some_and(|(hit, hurt)| hit.intersects(&hurt)),
+            hitboxes[1]
+                .zip(hurtboxes[0])
+                .is_some_and(|(hit, hurt)| hit.intersects(&hurt)),
         ];
 
         match hits {

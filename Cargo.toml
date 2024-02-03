@@ -6,5 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-executor = "1.8.0"
+bytemuck = "1.14.1"
 comfy = "0.3.1"
 comfy_include_dir = { version = "0.7.3", features = ["glob"] }
+futures-lite = "2.2.0"
+ggrs = "0.10.0"
+matchbox_socket = { version = "0.8.1", features = ["ggrs"] }
+tracing = "0.1.40"

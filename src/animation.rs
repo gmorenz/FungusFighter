@@ -37,6 +37,7 @@ pub struct AnimationParams {
     looping: bool,
 }
 
+#[derive(Clone)] // TODO: Remove
 pub struct AnnotatedSprite {
     texture: TextureHandle,
     source_rect: IRect,
@@ -46,6 +47,7 @@ pub struct AnnotatedSprite {
     duration: usize,
 }
 
+#[derive(Clone)]
 pub struct Animation {
     sprites: Vec<AnnotatedSprite>, // TODO: + Source Rect
     sprite_index: usize,
@@ -108,7 +110,7 @@ fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
         texture,
         source_rect: IRect {
             offset: sprite_offset,
-            size: sprite_size
+            size: sprite_size,
         },
         hurtbox: params.hurtbox.then(|| hurtbox),
         hitbox: params.hitbox,
@@ -163,7 +165,7 @@ pub const IDLE_ANIMATION: AnimationParams = AnimationParams {
     looping: true,
 };
 
-const ATTACK_SPRITES: SpriteSheetParams  = SpriteSheetParams {
+const ATTACK_SPRITES: SpriteSheetParams = SpriteSheetParams {
     texture: "F00_Attack_0",
     count_x: 2,
     count_y: 3,
@@ -215,7 +217,7 @@ pub const ATTACK_ANIMATION: AnimationParams = AnimationParams {
     looping: false,
 };
 
-const RECOIL_SPRITES: SpriteSheetParams  = SpriteSheetParams {
+const RECOIL_SPRITES: SpriteSheetParams = SpriteSheetParams {
     texture: "F00_Damage",
     count_x: 2,
     count_y: 2,
