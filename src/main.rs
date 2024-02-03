@@ -147,28 +147,38 @@ fn update(app: &mut App, _c: &mut EngineContext) {
             let socket_ref = socket.as_mut().unwrap();
             socket_ref.update_peers();
             let connected_count = socket_ref.connected_peers().count();
-            print!("Waiting for {} more player(s)...\r", 1 - connected_count);
+            println!("Waiting for {} more player(s)...", 1 - connected_count);
 
-            if connected_count == 1 {
-                println!();
-
+            if cfg!(feature="local") || connected_count == 1 {
                 let mut session = SessionBuilder::<GGRSConfig>::new()
                     .with_num_players(2)
                     .with_fps(60)
                     .unwrap();
 
-                let mut socket = socket.take().unwrap();
-                for (i, player) in socket.players().into_iter().enumerate() {
-                    session = session.add_player(player, i).unwrap();
+                let mut socket: WebRtcSocket = socket.take().unwrap();
+
+                if cfg!(feature = "local") {
+                    for i in 0.. 2 {
+                        session = session.add_player(ggrs::PlayerType::Local, i).unwrap();
+                    }
+                } else {
+                    for (i, player) in socket.players().into_iter().enumerate() {
+                        session = session.add_player(player, i).unwrap();
+                    }
                 }
 
                 let session = session.start_p2p_session(socket).unwrap();
 
-                let (local_player,) = session
-                    .local_player_handles()
-                    .into_iter()
-                    .collect_tuple()
-                    .unwrap();
+                let local_player;
+                if cfg!(feature = "local") {
+                    local_player = 0;
+                } else {
+                    (local_player,) = session
+                        .local_player_handles()
+                        .into_iter()
+                        .collect_tuple()
+                        .unwrap();
+                }
 
                 let animations = animation::load_animations();
 
@@ -211,6 +221,7 @@ const FPS: f64 = 60.0;
 impl Game {
     fn update(&mut self) {
         // communicate, receive and send packets
+        // TODO: Do we need this? It does it implicitly in advance_frame.
         self.session.poll_remote_clients();
 
         // print GGRS events
@@ -240,6 +251,13 @@ impl Game {
                 self.session
                     .add_local_input(self.local_player, get_local_input())
                     .unwrap();
+
+                if cfg!(feature = "local") {
+                    // TODO: Hook up player 2s controls.
+                    self.session
+                        .add_local_input(1, Input{ input_bits: 0 })
+                        .unwrap();
+                }
 
                 match self.session.advance_frame() {
                     Ok(requests) => self.handle_requests(requests),
