@@ -1,5 +1,6 @@
 use std::cmp::min;
 use std::ops::ControlFlow;
+use std::rc::Rc;
 
 use comfy::image::GenericImageView;
 use comfy::*;
@@ -49,18 +50,41 @@ pub struct AnnotatedSprite {
 
 #[derive(Clone)]
 pub struct Animation {
-    sprites: Vec<AnnotatedSprite>, // TODO: + Source Rect
+    data: Rc<AnimationData>,
     sprite_index: usize,
     frame_counter: usize,
+}
+
+pub struct AnimationData {
+    sprites: Vec<AnnotatedSprite>, // TODO: + Source Rect
     looping: bool,
 }
 
-pub fn load_animation(params: AnimationParams) -> Animation {
-    Animation {
+pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
+    let mut anims = HashMap::new();
+
+    // anims.insert("walking", load_animation(WALKING))
+    anims.insert("idle", load_animation(IDLE_ANIMATION).into()); // TODO: rename to standing
+    anims.insert("attack", load_animation(ATTACK_ANIMATION).into());
+    anims.insert("recoil", load_animation(RECOIL_ANIMATION).into());
+
+    anims
+}
+
+fn load_animation(params: AnimationParams) -> AnimationData {
+    AnimationData {
         sprites: params.sprites.into_iter().map(load_sprite).collect(),
-        sprite_index: 0,
-        frame_counter: 0,
         looping: params.looping,
+    }
+}
+
+impl AnimationData {
+    pub fn to_anim(self: &Rc<Self>) -> Animation {
+        Animation {
+            data: Rc::clone(self),
+            sprite_index: 0,
+            frame_counter: 0,
+        }
     }
 }
 
@@ -119,7 +143,7 @@ fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
     }
 }
 
-pub const IDLE_ANIMATION: AnimationParams = AnimationParams {
+const IDLE_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_0"),
@@ -171,7 +195,7 @@ const ATTACK_SPRITES: SpriteSheetParams = SpriteSheetParams {
     count_y: 3,
 };
 
-pub const ATTACK_ANIMATION: AnimationParams = AnimationParams {
+const ATTACK_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: ATTACK_SPRITES,
@@ -223,7 +247,7 @@ const RECOIL_SPRITES: SpriteSheetParams = SpriteSheetParams {
     count_y: 2,
 };
 
-pub const RECOIL_ANIMATION: AnimationParams = AnimationParams {
+const RECOIL_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: RECOIL_SPRITES,
@@ -264,13 +288,13 @@ pub const RECOIL_ANIMATION: AnimationParams = AnimationParams {
 impl Animation {
     pub fn next_frame(&mut self) -> ControlFlow<()> {
         self.frame_counter += 1;
-        if self.sprites[self.sprite_index].duration <= self.frame_counter {
+        if self.data.sprites[self.sprite_index].duration <= self.frame_counter {
             self.sprite_index += 1;
             self.frame_counter = 0;
 
-            if self.sprite_index >= self.sprites.len() {
+            if self.sprite_index >= self.data.sprites.len() {
                 self.sprite_index = 0;
-                if !self.looping {
+                if !self.data.looping {
                     return ControlFlow::Break(());
                 }
             }
@@ -279,7 +303,7 @@ impl Animation {
     }
 
     pub fn sprite(&self) -> &AnnotatedSprite {
-        &self.sprites[self.sprite_index]
+        &self.data.sprites[self.sprite_index]
     }
 
     /// Player 1 faces right (no flip); player 2 faces left (flip).

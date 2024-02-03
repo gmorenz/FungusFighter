@@ -1,0 +1,24 @@
+game design features brainstorming
+- blocking
+    hold back to block, or (like street fighter)
+        > has a cost (giving up space)
+    hold a button (like ssb)
+- jumping (or maybe dashing)
+    useful if you're cornered
+        (actions available when jumping = ?)
+        (would be nice to be somewhat vulnerable / punishable)
+- player collisions
+    ? (something less janky than just walking into each other,
+        and continuing the walking anim?)
+    (or could just ignore entirely)
+- health =?
+- crouching
+    > needs higher hitboxes (as does jumping)
+- wall jumping ??!
+    > ceiling-based follow-up attack
+
+game implementation features:
+- walking animation
+- number of lives (represented differently than a gauge?)
+
+(TODO for later: play an old street fighter for "research")

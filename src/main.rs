@@ -3,8 +3,9 @@
 mod animation;
 
 use std::ops::ControlFlow;
+use std::rc::Rc;
 
-use animation::{load_animation, Animation, ATTACK_ANIMATION, IDLE_ANIMATION, RECOIL_ANIMATION};
+use animation::{Animation, AnimationData};
 use bytemuck::Pod;
 use comfy::bytemuck::Zeroable;
 use comfy::include_dir::{include_dir, Dir, DirEntry};
@@ -63,7 +64,11 @@ struct Game {
     accumulator: Duration,
 
     state: GameState,
+
+    animations: Animations,
 }
+
+type Animations = HashMap<&'static str, Rc<AnimationData>>;
 
 #[derive(Clone)]
 enum GameState {
@@ -164,6 +169,9 @@ fn update(app: &mut App, _c: &mut EngineContext) {
                     .into_iter()
                     .collect_tuple()
                     .unwrap();
+
+                let animations = animation::load_animations();
+
                 *app = App::InGame(Game {
                     session,
                     local_player,
@@ -175,20 +183,22 @@ fn update(app: &mut App, _c: &mut EngineContext) {
                         players: [
                             Player {
                                 facing: Direction::East,
-                                animation: load_animation(IDLE_ANIMATION),
+                                animation: animations["idle"].to_anim(),
                                 loc: -0.5,
                                 state: PlayerState::Idle,
                                 health: 3,
                             },
                             Player {
                                 facing: Direction::West,
-                                animation: load_animation(IDLE_ANIMATION),
+                                animation: animations["idle"].to_anim(),
                                 loc: 0.5,
                                 state: PlayerState::Idle,
                                 health: 3,
                             },
                         ],
                     }),
+
+                    animations,
                 });
             }
         }
@@ -216,17 +226,14 @@ impl Game {
         }
 
         // get delta time from last iteration and accumulate it
-        // note: greg hates this
-        let delta = Instant::now().duration_since(self.last_update);
+        let now = Instant::now();
+        let delta = now.duration_since(self.last_update);
         self.accumulator = self.accumulator.saturating_add(delta);
-        self.last_update = Instant::now();
+        self.last_update = now;
 
         // if enough time is accumulated, we run a frame
         while self.accumulator.as_secs_f64() > fps_delta {
-            // decrease accumulator
-            self.accumulator = self
-                .accumulator
-                .saturating_sub(Duration::from_secs_f64(fps_delta));
+            self.accumulator -= Duration::from_secs_f64(fps_delta);
 
             // frames are only happening if the sessions are synchronized
             if self.session.current_state() == SessionState::Running {
@@ -277,7 +284,7 @@ impl Game {
     fn advance_frame(&mut self, inputs: Vec<(Input, ggrs::InputStatus)>) {
         match &mut self.state {
             GameState::Playing(playing_state) => {
-                let state_transition = playing_state.update(inputs);
+                let state_transition = playing_state.update(inputs, &self.animations);
                 if let Some(new_state) = state_transition {
                     self.state = new_state;
                 }
@@ -319,7 +326,11 @@ impl Input {
 }
 
 impl PlayingState {
-    fn update(&mut self, inputs: Vec<(Input, ggrs::InputStatus)>) -> Option<GameState> {
+    fn update(
+        &mut self,
+        inputs: Vec<(Input, ggrs::InputStatus)>,
+        anims: &Animations,
+    ) -> Option<GameState> {
         // Transition states
 
         for (i, p) in self.players.iter_mut().enumerate() {
@@ -329,7 +340,7 @@ impl PlayingState {
 
             // TODO: Handle return
             if matches!(p.animation.next_frame(), ControlFlow::Break(())) {
-                p.start_idle();
+                p.start_idle(anims);
             }
         }
 
@@ -338,7 +349,7 @@ impl PlayingState {
         for i in 0..2 {
             if matches!(self.players[i].state, PlayerState::Idle { .. }) {
                 if inputs[i].0.is_attack_pressed() {
-                    self.players[i].start_attack();
+                    self.players[i].start_attack(anims);
                 } else {
                     let left = inputs[i].0.is_left_pressed();
                     let right = inputs[i].0.is_right_pressed();
@@ -368,16 +379,16 @@ impl PlayingState {
         match hits {
             [true, true] => {
                 for p in self.players.iter_mut() {
-                    p.start_recoil();
+                    p.start_recoil(anims);
                 }
             }
             [true, false] => {
                 self.players[1].health = self.players[1].health.saturating_sub(1);
-                self.players[1].start_recoil();
+                self.players[1].start_recoil(anims);
             }
             [false, true] => {
                 self.players[0].health = self.players[0].health.saturating_sub(1);
-                self.players[0].start_recoil();
+                self.players[0].start_recoil(anims);
             }
             [false, false] => (),
         }
@@ -461,18 +472,18 @@ impl Player {
         self.animation.render(self.center(), self.facing);
     }
 
-    fn start_attack(&mut self) {
+    fn start_attack(&mut self, anims: &Animations) {
         self.state = PlayerState::Attacking;
-        self.animation = load_animation(ATTACK_ANIMATION);
+        self.animation = anims["attack"].to_anim();
     }
 
-    fn start_idle(&mut self) {
+    fn start_idle(&mut self, anims: &Animations) {
         self.state = PlayerState::Idle;
-        self.animation = load_animation(IDLE_ANIMATION);
+        self.animation = anims["idle"].to_anim();
     }
 
-    fn start_recoil(&mut self) {
+    fn start_recoil(&mut self, anims: &Animations) {
         self.state = PlayerState::Recoiling;
-        self.animation = load_animation(RECOIL_ANIMATION);
+        self.animation = anims["recoil"].to_anim();
     }
 }
