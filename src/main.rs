@@ -9,7 +9,7 @@ use bytemuck::Pod;
 use comfy::bytemuck::Zeroable;
 use comfy::include_dir::{include_dir, Dir, DirEntry};
 use comfy::*;
-use ggrs::{DesyncDetection, GgrsError, P2PSession, PlayerHandle, SessionBuilder, SessionState};
+use ggrs::{GgrsError, P2PSession, PlayerHandle, SessionBuilder, SessionState};
 use matchbox_socket::{PeerId, WebRtcSocket};
 
 simple_game!("Fighting Fungus", App, setup, update);
@@ -107,7 +107,7 @@ impl App {
     fn new(_e: &mut EngineState) -> Self {
         info!("Constructing socket...");
         // TODO: Use builder, more channels.
-        let (socket, message_loop) = WebRtcSocket::new_ggrs("wss://fire.droid.cafe");
+        let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://70.29.57.216");
         std::thread::spawn(move || {
             futures_lite::future::block_on(message_loop).unwrap();
             panic!("Network socket message loop exited");
@@ -142,12 +142,11 @@ fn update(app: &mut App, _c: &mut EngineContext) {
             let socket_ref = socket.as_mut().unwrap();
             socket_ref.update_peers();
             let connected_count = socket_ref.connected_peers().count();
-            println!("Waiting for {} more player(s)...", 2 - connected_count);
+            println!("Waiting for {} more player(s)...", 1 - connected_count);
 
-            if connected_count == 2 {
+            if connected_count == 1 {
                 let mut session = SessionBuilder::<GGRSConfig>::new()
                     .with_num_players(2)
-                    .with_desync_detection_mode(DesyncDetection::On { interval: 100 })
                     .with_fps(60)
                     .unwrap();
 
