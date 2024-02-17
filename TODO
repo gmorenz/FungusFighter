@@ -11,7 +11,14 @@ game design features brainstorming
     ? (something less janky than just walking into each other,
         and continuing the walking anim?)
     (or could just ignore entirely)
-- health =?
+- health ...?
+    > Lily proposed the mechanic of "stamina" (or energy or w/e)
+    > that is consumed by attacks (and other moves).
+    > Getting hit by an attack reduces stamina by a lot, and
+    > stamina also decreases on its own gradually.
+    > This can be used to balance very powerful moves, and
+    > it also encourages aggressive gameplay. Aggressive moves
+    > would be made to consume more stamina than defensive ones.
 - crouching
     > needs higher hitboxes (as does jumping)
 - wall jumping ??!
@@ -21,4 +28,5 @@ game implementation features:
 - walking animation
 - number of lives (represented differently than a gauge?)
 
-(TODO for later: play an old street fighter for "research")
+dev feature:
+- record/replay games for testing

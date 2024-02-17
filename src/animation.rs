@@ -55,6 +55,12 @@ pub struct Animation {
     frame_counter: usize,
 }
 
+impl Animation {
+    pub fn is_instance(&self, data: &Rc<AnimationData>) -> bool {
+        Rc::ptr_eq(&self.data, data)
+    }
+}
+
 pub struct AnimationData {
     sprites: Vec<AnnotatedSprite>, // TODO: + Source Rect
     looping: bool,
@@ -63,8 +69,9 @@ pub struct AnimationData {
 pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
     let mut anims = HashMap::new();
 
-    // anims.insert("walking", load_animation(WALKING))
-    anims.insert("idle", load_animation(IDLE_ANIMATION).into()); // TODO: rename to standing
+    anims.insert("forward", load_animation(WALKING_FORWARD).into());
+    anims.insert("backward", load_animation(WALKING_BACKWARD).into());
+    anims.insert("standing", load_animation(STANDING_ANIMATION).into());
     anims.insert("attack", load_animation(ATTACK_ANIMATION).into());
     anims.insert("recoil", load_animation(RECOIL_ANIMATION).into());
 
@@ -143,7 +150,128 @@ fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
     }
 }
 
-const IDLE_ANIMATION: AnimationParams = AnimationParams {
+const WALKING_FORWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
+    texture: "F00_Forward",
+    count_x: 2,
+    count_y: 3,
+};
+
+const WALKING_FORWARD: AnimationParams =  AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_FORWARD_SPRITES,
+            x: 0,
+            y: 0,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_FORWARD_SPRITES,
+            x: 1,
+            y: 0,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_FORWARD_SPRITES,
+            x: 0,
+            y: 1,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_FORWARD_SPRITES,
+            x: 1,
+            y: 1,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_FORWARD_SPRITES,
+            x: 0,
+            y: 2,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_FORWARD_SPRITES,
+            x: 1,
+            y: 2,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+    ],
+    looping: true,
+};
+
+
+const WALKING_BACKWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
+    texture: "F00_Backward",
+    count_x: 2,
+    count_y: 3,
+};
+
+const WALKING_BACKWARD: AnimationParams =  AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_BACKWARD_SPRITES,
+            x: 0,
+            y: 0,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_BACKWARD_SPRITES,
+            x: 1,
+            y: 0,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_BACKWARD_SPRITES,
+            x: 0,
+            y: 1,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_BACKWARD_SPRITES,
+            x: 1,
+            y: 1,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_BACKWARD_SPRITES,
+            x: 0,
+            y: 2,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: WALKING_BACKWARD_SPRITES,
+            x: 1,
+            y: 2,
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        },
+    ],
+    looping: true,
+};
+
+const STANDING_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_0"),

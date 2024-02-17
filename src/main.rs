@@ -1,4 +1,4 @@
-#![feature(array_methods)]
+// #![feature(array_methods)]
 
 mod animation;
 
@@ -33,7 +33,7 @@ enum PlayerState {
     Attacking,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Direction {
     East,
     West,
@@ -112,7 +112,7 @@ impl App {
     fn new(_e: &mut EngineState) -> Self {
         info!("Constructing socket...");
         // TODO: Use builder, more channels.
-        let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://70.29.57.216/foo");
+        let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://localhost/foo");
         std::thread::spawn(move || {
             futures_lite::future::block_on(message_loop).unwrap();
             panic!("Network socket message loop exited");
@@ -147,9 +147,11 @@ fn update(app: &mut App, _c: &mut EngineContext) {
             let socket_ref = socket.as_mut().unwrap();
             socket_ref.update_peers();
             let connected_count = socket_ref.connected_peers().count();
-            println!("Waiting for {} more player(s)...", 1 - connected_count);
+            print!("\rWaiting for {} more player(s)...", 1 - connected_count);
 
             if cfg!(feature="local") || connected_count == 1 {
+                println!();
+
                 let mut session = SessionBuilder::<GGRSConfig>::new()
                     .with_num_players(2)
                     .with_fps(60)
@@ -193,14 +195,14 @@ fn update(app: &mut App, _c: &mut EngineContext) {
                         players: [
                             Player {
                                 facing: Direction::East,
-                                animation: animations["idle"].to_anim(),
+                                animation: animations["standing"].to_anim(),
                                 loc: -0.5,
                                 state: PlayerState::Idle,
                                 health: 3,
                             },
                             Player {
                                 facing: Direction::West,
-                                animation: animations["idle"].to_anim(),
+                                animation: animations["standing"].to_anim(),
                                 loc: 0.5,
                                 state: PlayerState::Idle,
                                 health: 3,
@@ -358,11 +360,14 @@ impl PlayingState {
 
             // TODO: Handle return
             if matches!(p.animation.next_frame(), ControlFlow::Break(())) {
-                p.start_idle(anims);
+                p.start_idle();
             }
         }
 
         // HANDLE INPUT
+
+        // NOTE: start_idle may not be called after this point.
+        // we rely on input handling to put us in the right walking animation.
 
         for i in 0..2 {
             if matches!(self.players[i].state, PlayerState::Idle { .. }) {
@@ -370,12 +375,26 @@ impl PlayingState {
                     self.players[i].start_attack(anims);
                 } else {
                     let left = inputs[i].0.is_left_pressed();
-                    let right = inputs[i].0.is_right_pressed();
-                    match (left, right) {
+                    let right: bool = inputs[i].0.is_right_pressed();
+
+                    let forwards = (left && (self.players[i].facing == Direction::West))
+                        || (right && (self.players[i].facing == Direction::East));
+                    let backwards = (left && (self.players[i].facing == Direction::East))
+                        || (right && (self.players[i].facing == Direction::West));
+
+                    match (forwards, backwards) {
                         // TODO: Check if this is framerate dependent.
-                        (true, false) => self.players[i].move_(-PLAYER_SPEED),
-                        (false, true) => self.players[i].move_(PLAYER_SPEED),
-                        (true, true) | (false, false) => (),
+                        (true, false) => {
+                            self.players[i].move_(PLAYER_SPEED);
+                            self.players[i].ensure_walking_forwards(anims);
+                        }
+                        (false, true) => {
+                            self.players[i].move_(-PLAYER_SPEED);
+                            self.players[i].ensure_walking_backwards(anims); // todo; dir'n
+                        }
+                        (true, true) | (false, false) => {
+                            self.players[i].ensure_standing(anims);
+                        }
                     }
                 }
             }
@@ -464,8 +483,12 @@ impl PlayingState {
 }
 
 impl Player {
-    fn move_(&mut self, x: f32) {
-        self.loc += x;
+    fn move_(&mut self, speed: f32) {
+        let transform = match self.facing {
+            Direction::East => 1.0,
+            Direction::West => -1.0,
+        };
+        self.loc += speed * transform;
         self.loc = self.loc.clamp(-1.0, 1.0);
     }
 
@@ -495,9 +518,26 @@ impl Player {
         self.animation = anims["attack"].to_anim();
     }
 
-    fn start_idle(&mut self, anims: &Animations) {
+    fn start_idle(&mut self) {
         self.state = PlayerState::Idle;
-        self.animation = anims["idle"].to_anim();
+    }
+
+    fn ensure_standing(&mut self, anims: &Animations) {
+        if !self.animation.is_instance(&anims["standing"]) {
+            self.animation = anims["standing"].to_anim();
+        }
+    }
+
+    fn ensure_walking_forwards(&mut self, anims: &Animations) {
+        if !self.animation.is_instance(&anims["forward"]) {
+            self.animation = anims["forward"].to_anim();
+        }
+    }
+
+    fn ensure_walking_backwards(&mut self, anims: &Animations) {
+        if !self.animation.is_instance(&anims["backward"]) {
+            self.animation = anims["backward"].to_anim();
+        }
     }
 
     fn start_recoil(&mut self, anims: &Animations) {
