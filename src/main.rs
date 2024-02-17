@@ -570,10 +570,15 @@ impl Player {
         self.animation = anims["recoil"].to_anim();
     }
 
+    fn start_block(&mut self, anims: &Animations) {
+        self.state = PlayerState::Recoiling; // TODO: Different state?
+        self.animation = anims["block"].to_anim();
+    }
+
     fn handle_hit(&mut self, anims: &Animations) {
         if self.is_walking_backwards(anims) {
             // TODO: Block, different animation, some stamina effect...
-            self.start_recoil(anims);
+            self.start_block(anims);
         } else {
             self.health = self.health.saturating_sub(1);
             self.start_recoil(anims);

@@ -25,8 +25,6 @@ impl SpriteSheetParams {
 
 struct AnnotatedSpriteParams {
     sprite_sheet: SpriteSheetParams,
-    x: u32,
-    y: u32,
 
     hurtbox: bool,
     hitbox: Option<Vec2>,
@@ -69,6 +67,7 @@ pub struct AnimationData {
 pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
     let mut anims = HashMap::new();
 
+    anims.insert("block", load_animation(BLOCK).into());
     anims.insert("forward", load_animation(WALKING_FORWARD).into());
     anims.insert("backward", load_animation(WALKING_BACKWARD).into());
     anims.insert("standing", load_animation(GOOSE_STANDING_ANIMATION).into());
@@ -80,7 +79,7 @@ pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
 
 fn load_animation(params: AnimationParams) -> AnimationData {
     AnimationData {
-        sprites: params.sprites.into_iter().map(load_sprite).collect(),
+        sprites: params.sprites.into_iter().enumerate().map(|(i, params)| load_sprite(i, params)).collect(),
         looping: params.looping,
     }
 }
@@ -95,7 +94,7 @@ impl AnimationData {
     }
 }
 
-fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
+fn load_sprite(i: usize, params: &AnnotatedSpriteParams) -> AnnotatedSprite {
     let texture = texture_id(params.sprite_sheet.texture);
     let assets_lock = ASSETS.borrow();
     let images_lock = assets_lock.texture_image_map.lock();
@@ -104,8 +103,12 @@ fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
     let sprite_width = image.width() / params.sprite_sheet.count_x;
     let sprite_height = image.height() / params.sprite_sheet.count_y;
 
-    let sprite_x = sprite_width * params.x;
-    let sprite_y = sprite_height * params.y;
+    let x = i as u32 % params.sprite_sheet.count_x;
+    let y = i as u32 / params.sprite_sheet.count_x;
+    assert!(y < params.sprite_sheet.count_y);
+
+    let sprite_x = sprite_width * x;
+    let sprite_y = sprite_height * y;
 
     let sprite_image =
         comfy::image::imageops::crop_imm(image, sprite_x, sprite_y, sprite_width, sprite_height);
@@ -150,6 +153,30 @@ fn load_sprite(params: &AnnotatedSpriteParams) -> AnnotatedSprite {
     }
 }
 
+const BLOCK_SPRITES: SpriteSheetParams = SpriteSheetParams {
+    texture: "F00_CrouchGuard",
+    count_x: 1,
+    count_y: 2,
+};
+
+const BLOCK: AnimationParams = AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: BLOCK_SPRITES,
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: BLOCK_SPRITES,
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        }
+    ],
+    looping: false,
+};
+
 const WALKING_FORWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
     texture: "F00_Forward",
     count_x: 2,
@@ -160,48 +187,36 @@ const WALKING_FORWARD: AnimationParams =  AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_FORWARD_SPRITES,
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_FORWARD_SPRITES,
-            x: 1,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_FORWARD_SPRITES,
-            x: 0,
-            y: 1,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_FORWARD_SPRITES,
-            x: 1,
-            y: 1,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_FORWARD_SPRITES,
-            x: 0,
-            y: 2,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_FORWARD_SPRITES,
-            x: 1,
-            y: 2,
             hurtbox: true,
             hitbox: None,
             duration: 10,
@@ -221,48 +236,36 @@ const WALKING_BACKWARD: AnimationParams =  AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_BACKWARD_SPRITES,
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_BACKWARD_SPRITES,
-            x: 1,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_BACKWARD_SPRITES,
-            x: 0,
-            y: 1,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_BACKWARD_SPRITES,
-            x: 1,
-            y: 1,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_BACKWARD_SPRITES,
-            x: 0,
-            y: 2,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_BACKWARD_SPRITES,
-            x: 1,
-            y: 2,
             hurtbox: true,
             hitbox: None,
             duration: 10,
@@ -281,16 +284,12 @@ const GOOSE_STANDING_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: GOOSE_STANDING_SPRITES,
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 30,
         },
         AnnotatedSpriteParams {
             sprite_sheet: GOOSE_STANDING_SPRITES,
-            x: 0,
-            y: 1,
             hurtbox: true,
             hitbox: None,
             duration: 30,
@@ -304,40 +303,30 @@ const FOO_STANDING_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_0"),
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_1"),
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_2"),
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_3"),
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_4"),
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
@@ -356,40 +345,30 @@ const ATTACK_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: ATTACK_SPRITES,
-            x: 0,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: ATTACK_SPRITES,
-            x: 1,
-            y: 0,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: ATTACK_SPRITES,
-            x: 0,
-            y: 1,
             hurtbox: true,
             hitbox: Some(Vec2 { x: 0.4, y: 0.2 }),
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: ATTACK_SPRITES,
-            x: 1,
-            y: 1,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: ATTACK_SPRITES,
-            x: 0,
-            y: 2,
             hurtbox: true,
             hitbox: None,
             duration: 10,
@@ -408,32 +387,24 @@ const RECOIL_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: RECOIL_SPRITES,
-            x: 0,
-            y: 0,
             hurtbox: false,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: RECOIL_SPRITES,
-            x: 1,
-            y: 0,
             hurtbox: false,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: RECOIL_SPRITES,
-            x: 0,
-            y: 1,
             hurtbox: false,
             hitbox: None,
             duration: 10,
         },
         AnnotatedSpriteParams {
             sprite_sheet: RECOIL_SPRITES,
-            x: 1,
-            y: 1,
             hurtbox: false,
             hitbox: None,
             duration: 10,
