@@ -79,7 +79,12 @@ pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
 
 fn load_animation(params: AnimationParams) -> AnimationData {
     AnimationData {
-        sprites: params.sprites.into_iter().enumerate().map(|(i, params)| load_sprite(i, params)).collect(),
+        sprites: params
+            .sprites
+            .into_iter()
+            .enumerate()
+            .map(|(i, params)| load_sprite(i, params))
+            .collect(),
         looping: params.looping,
     }
 }
@@ -172,7 +177,7 @@ const BLOCK: AnimationParams = AnimationParams {
             hurtbox: false,
             hitbox: None,
             duration: 10,
-        }
+        },
     ],
     looping: false,
 };
@@ -183,7 +188,7 @@ const WALKING_FORWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
     count_y: 3,
 };
 
-const WALKING_FORWARD: AnimationParams =  AnimationParams {
+const WALKING_FORWARD: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_FORWARD_SPRITES,
@@ -225,14 +230,13 @@ const WALKING_FORWARD: AnimationParams =  AnimationParams {
     looping: true,
 };
 
-
 const WALKING_BACKWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
     texture: "F00_Backward",
     count_x: 2,
     count_y: 3,
 };
 
-const WALKING_BACKWARD: AnimationParams =  AnimationParams {
+const WALKING_BACKWARD: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: WALKING_BACKWARD_SPRITES,
@@ -293,7 +297,7 @@ const GOOSE_STANDING_ANIMATION: AnimationParams = AnimationParams {
             hurtbox: true,
             hitbox: None,
             duration: 30,
-        }
+        },
     ],
     looping: true,
 };

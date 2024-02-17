@@ -149,7 +149,7 @@ fn update(app: &mut App, _c: &mut EngineContext) {
             let connected_count = socket_ref.connected_peers().count();
             print!("\rWaiting for {} more player(s)...", 1 - connected_count);
 
-            if cfg!(feature="local") || connected_count == 1 {
+            if cfg!(feature = "local") || connected_count == 1 {
                 println!();
 
                 let mut session = SessionBuilder::<GGRSConfig>::new()
@@ -160,7 +160,7 @@ fn update(app: &mut App, _c: &mut EngineContext) {
                 let mut socket: WebRtcSocket = socket.take().unwrap();
 
                 if cfg!(feature = "local") {
-                    for i in 0.. 2 {
+                    for i in 0..2 {
                         session = session.add_player(ggrs::PlayerType::Local, i).unwrap();
                     }
                 } else {
@@ -255,9 +255,7 @@ impl Game {
                     .unwrap();
 
                 if cfg!(feature = "local") {
-                    self.session
-                        .add_local_input(1, get_local_input2())
-                        .unwrap();
+                    self.session.add_local_input(1, get_local_input2()).unwrap();
                 }
 
                 match self.session.advance_frame() {
@@ -382,8 +380,7 @@ impl PlayingState {
         if self.players[0].loc < self.players[1].loc {
             self.players[0].facing = Direction::East;
             self.players[1].facing = Direction::West;
-        }
-        else if self.players[0].loc > self.players[1].loc {
+        } else if self.players[0].loc > self.players[1].loc {
             self.players[0].facing = Direction::West;
             self.players[1].facing = Direction::East;
         }
@@ -444,10 +441,8 @@ impl PlayingState {
                     p.start_recoil(anims);
                 }
             }
-            [true, false] =>
-                self.players[1].handle_hit(anims),
-            [false, true] =>
-                self.players[0].handle_hit(anims),
+            [true, false] => self.players[1].handle_hit(anims),
+            [false, true] => self.players[0].handle_hit(anims),
             [false, false] => (),
         }
 
