@@ -255,9 +255,8 @@ impl Game {
                     .unwrap();
 
                 if cfg!(feature = "local") {
-                    // TODO: Hook up player 2s controls.
                     self.session
-                        .add_local_input(1, Input{ input_bits: 0 })
+                        .add_local_input(1, get_local_input2())
                         .unwrap();
                 }
 
@@ -325,6 +324,22 @@ fn get_local_input() -> Input {
         bits |= Input::RIGHT;
     }
     if is_key_down(KeyCode::Space) {
+        bits |= Input::ATTACK;
+    }
+
+    Input { input_bits: bits }
+}
+
+fn get_local_input2() -> Input {
+    let mut bits = 0u8;
+
+    if is_key_down(KeyCode::Left) {
+        bits |= Input::LEFT;
+    }
+    if is_key_down(KeyCode::Right) {
+        bits |= Input::RIGHT;
+    }
+    if is_key_down(KeyCode::Down) {
         bits |= Input::ATTACK;
     }
 
@@ -429,14 +444,10 @@ impl PlayingState {
                     p.start_recoil(anims);
                 }
             }
-            [true, false] => {
-                self.players[1].health = self.players[1].health.saturating_sub(1);
-                self.players[1].start_recoil(anims);
-            }
-            [false, true] => {
-                self.players[0].health = self.players[0].health.saturating_sub(1);
-                self.players[0].start_recoil(anims);
-            }
+            [true, false] =>
+                self.players[1].handle_hit(anims),
+            [false, true] =>
+                self.players[0].handle_hit(anims),
             [false, false] => (),
         }
 
@@ -550,8 +561,22 @@ impl Player {
         }
     }
 
+    fn is_walking_backwards(&mut self, anims: &Animations) -> bool {
+        self.animation.is_instance(&anims["backward"])
+    }
+
     fn start_recoil(&mut self, anims: &Animations) {
         self.state = PlayerState::Recoiling;
         self.animation = anims["recoil"].to_anim();
+    }
+
+    fn handle_hit(&mut self, anims: &Animations) {
+        if self.is_walking_backwards(anims) {
+            // TODO: Block, different animation, some stamina effect...
+            self.start_recoil(anims);
+        } else {
+            self.health = self.health.saturating_sub(1);
+            self.start_recoil(anims);
+        }
     }
 }

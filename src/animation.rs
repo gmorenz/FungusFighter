@@ -71,7 +71,7 @@ pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
 
     anims.insert("forward", load_animation(WALKING_FORWARD).into());
     anims.insert("backward", load_animation(WALKING_BACKWARD).into());
-    anims.insert("standing", load_animation(STANDING_ANIMATION).into());
+    anims.insert("standing", load_animation(GOOSE_STANDING_ANIMATION).into());
     anims.insert("attack", load_animation(ATTACK_ANIMATION).into());
     anims.insert("recoil", load_animation(RECOIL_ANIMATION).into());
 
@@ -271,7 +271,36 @@ const WALKING_BACKWARD: AnimationParams =  AnimationParams {
     looping: true,
 };
 
-const STANDING_ANIMATION: AnimationParams = AnimationParams {
+const GOOSE_STANDING_SPRITES: SpriteSheetParams = SpriteSheetParams {
+    texture: "goose_idle",
+    count_x: 1,
+    count_y: 2,
+};
+
+const GOOSE_STANDING_ANIMATION: AnimationParams = AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_STANDING_SPRITES,
+            x: 0,
+            y: 0,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_STANDING_SPRITES,
+            x: 0,
+            y: 1,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        }
+    ],
+    looping: true,
+};
+
+#[allow(dead_code)]
+const FOO_STANDING_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
             sprite_sheet: SpriteSheetParams::single_sprite("Idle_0"),
