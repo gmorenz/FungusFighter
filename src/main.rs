@@ -364,6 +364,16 @@ impl PlayingState {
             }
         }
 
+        if self.players[0].loc < self.players[1].loc {
+            self.players[0].facing = Direction::East;
+            self.players[1].facing = Direction::West;
+        }
+        else if self.players[0].loc > self.players[1].loc {
+            self.players[0].facing = Direction::West;
+            self.players[1].facing = Direction::East;
+        }
+        // Else, equal, change nothing.
+
         // HANDLE INPUT
 
         // NOTE: start_idle may not be called after this point.
