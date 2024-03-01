@@ -18,7 +18,10 @@ struct AnnotatedSpriteParams {
     sprite_sheet: SpriteSheetParams,
 
     hurtbox: bool,
-    hitbox: Option<Vec2>,
+    /// Pixel coords in the current tile of the spritesheet.
+    /// Top-left is (0,0).
+    hitbox: Option<IRect>,
+
     duration: usize,
 }
 
@@ -50,11 +53,12 @@ pub struct AnimationData {
     looping: bool,
 }
 
+/// Using player frame of refence, world scale.
 pub struct AnnotatedSprite {
     texture: TextureHandle,
     source_rect: IRect,
-    pub hitbox: Option<Vec2>,
-    pub hurtbox: Option<Vec2>,
+    pub hitbox: Option<AABB>,
+    pub hurtbox: Option<AABB>,
     size: Vec2,
     duration: usize,
 }
@@ -142,10 +146,28 @@ fn load_sprite(i: usize, params: &AnnotatedSpriteParams) -> AnnotatedSprite {
         y: sprite_y as i32,
     };
 
-    let hurtbox = Vec2 {
-        x: sprite_size.x as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
-        y: sprite_size.y as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
-    };
+    let hurtbox = AABB::from_center_size(
+        Vec2::ZERO,
+        Vec2 {
+            x: sprite_size.x as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
+            y: sprite_size.y as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
+        },
+    );
+
+    let hitbox = params.hitbox.map(|rect| {
+        // in: pixel, y-down, (0,0) topleft
+        // out: float, y-up, (0,0) center of player
+
+        let center_x = sprite_width as f32 / 2.;
+        let center_y = sprite_height as f32 / 2.;
+        let x = (rect.offset.x as f32 - center_x) / SPRITE_PIXELS_PER_WINDOW_POINT;
+        let y = -1. * (rect.offset.y as f32 - center_y) / SPRITE_PIXELS_PER_WINDOW_POINT;
+
+        let w = rect.size.x as f32 / SPRITE_PIXELS_PER_WINDOW_POINT;
+        let h = rect.size.y as f32 / SPRITE_PIXELS_PER_WINDOW_POINT;
+
+        AABB::from_top_left(Vec2 { x, y }, Vec2 { x: w, y: h })
+    });
 
     AnnotatedSprite {
         texture,
@@ -154,8 +176,8 @@ fn load_sprite(i: usize, params: &AnnotatedSpriteParams) -> AnnotatedSprite {
             size: sprite_size,
         },
         hurtbox: params.hurtbox.then(|| hurtbox),
-        hitbox: params.hitbox,
-        size: hurtbox,
+        hitbox,
+        size: hurtbox.size(),
         duration: params.duration,
     }
 }

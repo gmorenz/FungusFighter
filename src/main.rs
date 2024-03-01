@@ -558,13 +558,25 @@ impl Player {
     }
 
     fn hitbox(&self) -> Option<AABB> {
-        let hb = self.animation.sprite().hitbox?;
-        Some(AABB::from_center_size(self.center(), hb))
+        let mut hb = self.animation.sprite().hitbox?;
+        if matches!(self.facing, Direction::West) {
+            // Reflect.
+            (hb.min.x, hb.max.x) = (-hb.max.x, -hb.min.x);
+        }
+        hb.min += self.center();
+        hb.max += self.center();
+        Some(hb)
     }
 
     fn hurtbox(&self) -> Option<AABB> {
-        let hb = self.animation.sprite().hurtbox?;
-        Some(AABB::from_center_size(self.center(), hb))
+        let mut hb = self.animation.sprite().hurtbox?;
+        if matches!(self.facing, Direction::West) {
+            // Reflect.
+            (hb.min.x, hb.max.x) = (-hb.max.x, -hb.min.x);
+        }
+        hb.min += self.center();
+        hb.max += self.center();
+        Some(hb)
     }
 
     fn render_sprite(&self) {

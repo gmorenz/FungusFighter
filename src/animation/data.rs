@@ -1,4 +1,4 @@
-use comfy::Vec2;
+use comfy::{IRect, IVec2};
 
 use super::{AnimationParams, AnnotatedSpriteParams, SpriteSheetParams};
 
@@ -32,6 +32,7 @@ pub const WALKING_FORWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
     count_y: 3,
 };
 
+#[allow(dead_code)]
 pub const WALKING_FORWARD: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {
@@ -121,7 +122,6 @@ pub const WALKING_BACKWARD: AnimationParams = AnimationParams {
     ],
     looping: true,
 };
-
 
 pub const GOOSE_FORWARDS_SPRITES: SpriteSheetParams = SpriteSheetParams {
     texture: "goose_16_walking",
@@ -230,7 +230,10 @@ pub const GOOSE_ATTACK_ANIMATION: AnimationParams = AnimationParams {
         AnnotatedSpriteParams {
             sprite_sheet: GOOSE_ATTACK_SPRITES,
             hurtbox: true,
-            hitbox: Some(Vec2 { x: 0.4, y: 0.2 }),
+            hitbox: Some(IRect {
+                offset: IVec2::new(24, 3),
+                size: IVec2::new(5, 5),
+            }),
             duration: 30,
         },
         AnnotatedSpriteParams {
@@ -304,7 +307,10 @@ pub const ATTACK_ANIMATION: AnimationParams = AnimationParams {
         AnnotatedSpriteParams {
             sprite_sheet: ATTACK_SPRITES,
             hurtbox: true,
-            hitbox: Some(Vec2 { x: 0.4, y: 0.2 }),
+            hitbox: Some(IRect {
+                offset: IVec2::new(10, 10),
+                size: IVec2::new(10, 10),
+            }),
             duration: 10,
         },
         AnnotatedSpriteParams {
