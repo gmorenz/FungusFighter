@@ -1,5 +1,6 @@
 mod animation;
 
+use std::mem;
 use std::ops::ControlFlow;
 
 use animation::{Animation, AnimationData};
@@ -7,7 +8,7 @@ use bytemuck::Pod;
 use comfy::bytemuck::Zeroable;
 use comfy::include_dir::{include_dir, Dir, DirEntry};
 use comfy::*;
-use ggrs::{GgrsError, P2PSession, PlayerHandle, SessionBuilder, SessionState};
+use ggrs::{GgrsError, NonBlockingSocket, P2PSession, SessionBuilder, SessionState};
 use matchbox_socket::{PeerId, WebRtcSocket};
 
 simple_game!("Goose Fighter", App, setup, update);
@@ -44,13 +45,13 @@ struct Player {
 }
 
 enum App {
-    Loading { socket: Option<WebRtcSocket> },
+    StartMenu { server: String },
+    Connecting { socket: Option<WebRtcSocket> },
     InGame(Game),
 }
 
 struct Game {
     session: P2PSession<GGRSConfig>,
-    local_player: PlayerHandle,
 
     // time variables for tick rate
     last_update: Instant,
@@ -103,18 +104,8 @@ impl Input {
 
 impl App {
     fn new(_e: &mut EngineState) -> Self {
-        info!("Constructing socket...");
-        // TODO: Use builder, more channels.
-        // let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://206.172.98.17:3536/?next=2");
-        // let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://206.172.98.17:80/foo");
-        let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://localhost:3536/foo");
-        std::thread::spawn(move || {
-            futures_lite::future::block_on(message_loop).unwrap();
-            panic!("Network socket message loop exited");
-        });
-
-        App::Loading {
-            socket: Some(socket),
+        App::StartMenu {
+            server: "localhost:3536".into(),
         }
     }
 }
@@ -136,15 +127,87 @@ fn setup(_app: &mut App, c: &mut EngineContext) {
     }
 }
 
+#[derive(Default)]
+struct FakeSocket {
+    queue: Vec<(PeerId, ggrs::Message)>,
+}
+
+impl NonBlockingSocket<PeerId> for FakeSocket {
+    fn send_to(&mut self, msg: &ggrs::Message, addr: &PeerId) {
+        self.queue.push((*addr, msg.clone()));
+    }
+
+    fn receive_all_messages(&mut self) -> Vec<(PeerId, ggrs::Message)> {
+        mem::take(&mut self.queue)
+    }
+}
+
 fn update(app: &mut App, _c: &mut EngineContext) {
     match app {
-        App::Loading { socket } => {
+        App::StartMenu { ref mut server } => {
+            clear_background(WHITE);
+
+            let new_app = comfy::egui::CentralPanel::default().show(&comfy::egui(), |ui| {
+                ui.with_layout(
+                    egui::Layout::top_down_justified(egui::Align::Center),
+                    |ui| {
+                        ui.add(egui::Label::new("Goose Fighter"));
+                        if ui.button("Start Local").clicked() {
+                            let mut session = SessionBuilder::<GGRSConfig>::new()
+                                .with_num_players(2)
+                                .with_fps(60)
+                                .unwrap();
+
+                            for i in 0..2 {
+                                session = session.add_player(ggrs::PlayerType::Local, i).unwrap();
+                            }
+
+                            let session = session.start_p2p_session(FakeSocket::default()).unwrap();
+
+                            return Some(start_game(session));
+                        }
+
+                        if ui.button("Start Remote").clicked() {
+                            info!("Constructing socket...");
+                            // TODO: Use builder, more channels.
+                            // let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://206.172.98.17:3536/?next=2");
+                            // let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://206.172.98.17:80/foo");
+                            // TODO: Sort of a injection vulnerability.
+                            let (socket, message_loop) =
+                                WebRtcSocket::new_ggrs(format!("ws://{server}/foo"));
+                            std::thread::spawn(move || {
+                                futures_lite::future::block_on(message_loop).unwrap();
+                                panic!("Network socket message loop exited");
+                            });
+
+                            return Some(App::Connecting {
+                                socket: Some(socket),
+                            });
+                        }
+                        ui.text_edit_singleline(server);
+                        None
+                    },
+                )
+            });
+
+            if let Some(new_app) = new_app.inner.inner {
+                *app = new_app;
+            }
+
+            // // Render text
+            // draw_text(&"Goose Fighter", Vec2 { x: 0., y: 0.4 }, BLACK, TextAlign::Center);
+
+            // Menu
+            //  - Start Local
+            //  - Connect to server [IP]
+        }
+        App::Connecting { socket } => {
             let socket_ref = socket.as_mut().unwrap();
             socket_ref.update_peers();
             let connected_count = socket_ref.connected_peers().count();
             print!("\rWaiting for {} more player(s)...", 1 - connected_count);
 
-            if cfg!(feature = "local") || connected_count == 1 {
+            if connected_count == 1 {
                 println!();
 
                 let mut session = SessionBuilder::<GGRSConfig>::new()
@@ -154,63 +217,49 @@ fn update(app: &mut App, _c: &mut EngineContext) {
 
                 let mut socket: WebRtcSocket = socket.take().unwrap();
 
-                if cfg!(feature = "local") {
-                    for i in 0..2 {
-                        session = session.add_player(ggrs::PlayerType::Local, i).unwrap();
-                    }
-                } else {
-                    for (i, player) in socket.players().into_iter().enumerate() {
-                        session = session.add_player(player, i).unwrap();
-                    }
+                for (i, player) in socket.players().into_iter().enumerate() {
+                    session = session.add_player(player, i).unwrap();
                 }
 
                 let session = session.start_p2p_session(socket).unwrap();
 
-                let local_player;
-                if cfg!(feature = "local") {
-                    local_player = 0;
-                } else {
-                    (local_player,) = session
-                        .local_player_handles()
-                        .into_iter()
-                        .collect_tuple()
-                        .unwrap();
-                }
-
-                let animations = animation::load_animations();
-
-                *app = App::InGame(Game {
-                    session,
-                    local_player,
-
-                    last_update: Instant::now(),
-                    accumulator: Duration::ZERO,
-
-                    state: GameState::Playing(PlayingState {
-                        players: [
-                            Player {
-                                facing: Direction::East,
-                                animation: animations["standing"].to_anim(),
-                                loc: -0.5,
-                                state: PlayerState::Idle,
-                                health: 3,
-                            },
-                            Player {
-                                facing: Direction::West,
-                                animation: animations["standing"].to_anim(),
-                                loc: 0.5,
-                                state: PlayerState::Idle,
-                                health: 3,
-                            },
-                        ],
-                    }),
-
-                    animations,
-                });
+                *app = start_game(session);
             }
         }
         App::InGame(game) => game.update(),
     }
+}
+
+fn start_game(session: P2PSession<GGRSConfig>) -> App {
+    let animations = animation::load_animations();
+
+    App::InGame(Game {
+        session,
+
+        last_update: Instant::now(),
+        accumulator: Duration::ZERO,
+
+        state: GameState::Playing(PlayingState {
+            players: [
+                Player {
+                    facing: Direction::East,
+                    animation: animations["standing"].to_anim(),
+                    loc: -0.5,
+                    state: PlayerState::Idle,
+                    health: 3,
+                },
+                Player {
+                    facing: Direction::West,
+                    animation: animations["standing"].to_anim(),
+                    loc: 0.5,
+                    state: PlayerState::Idle,
+                    health: 3,
+                },
+            ],
+        }),
+
+        animations,
+    })
 }
 
 const FPS: f64 = 60.0;
@@ -245,14 +294,13 @@ impl Game {
 
             // frames are only happening if the sessions are synchronized
             if self.session.current_state() == SessionState::Running {
-                self.session
-                    .add_local_input(self.local_player, get_local_input())
-                    .unwrap();
-
-                if cfg!(feature = "local") {
-                    self.session.add_local_input(1, get_local_input2()).unwrap();
+                let mut handles = self.session.local_player_handles();
+                handles.sort();
+                for (idx, player) in handles.into_iter().enumerate() {
+                    self.session
+                        .add_local_input(player, get_local_input(idx))
+                        .unwrap();
                 }
-
                 match self.session.advance_frame() {
                     Ok(requests) => self.handle_requests(requests),
                     Err(GgrsError::PredictionThreshold) => {
@@ -307,33 +355,33 @@ impl Game {
     }
 }
 
-fn get_local_input() -> Input {
+fn get_local_input(idx: usize) -> Input {
     let mut bits = 0u8;
 
-    if is_key_down(KeyCode::A) {
-        bits |= Input::LEFT;
-    }
-    if is_key_down(KeyCode::D) {
-        bits |= Input::RIGHT;
-    }
-    if is_key_down(KeyCode::Space) {
-        bits |= Input::ATTACK;
-    }
-
-    Input { input_bits: bits }
-}
-
-fn get_local_input2() -> Input {
-    let mut bits = 0u8;
-
-    if is_key_down(KeyCode::Left) {
-        bits |= Input::LEFT;
-    }
-    if is_key_down(KeyCode::Right) {
-        bits |= Input::RIGHT;
-    }
-    if is_key_down(KeyCode::Down) {
-        bits |= Input::ATTACK;
+    match idx {
+        0 => {
+            if is_key_down(KeyCode::A) {
+                bits |= Input::LEFT;
+            }
+            if is_key_down(KeyCode::D) {
+                bits |= Input::RIGHT;
+            }
+            if is_key_down(KeyCode::Space) {
+                bits |= Input::ATTACK;
+            }
+        }
+        1 => {
+            if is_key_down(KeyCode::Left) {
+                bits |= Input::LEFT;
+            }
+            if is_key_down(KeyCode::Right) {
+                bits |= Input::RIGHT;
+            }
+            if is_key_down(KeyCode::Down) {
+                bits |= Input::ATTACK;
+            }
+        }
+        _ => unimplemented!(),
     }
 
     Input { input_bits: bits }

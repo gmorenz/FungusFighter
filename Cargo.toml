@@ -14,6 +14,3 @@ futures-lite = "2.2.0"
 ggrs = "0.10.0"
 matchbox_socket = { version = "0.8.1", features = ["ggrs"] }
 tracing = "0.1.40"
-
-[features]
-local = []
