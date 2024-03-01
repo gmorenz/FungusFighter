@@ -13,6 +13,8 @@ struct AnimationParams {
     sprite_sheet: SpriteSheetParams,
     sprites: Vec<AnnotatedSpriteParams>,
     looping: bool,
+    #[serde(default)]
+    play_backwards: bool,
 }
 
 #[derive(Deserialize)]
@@ -116,14 +118,18 @@ impl Animation {
 }
 
 fn load_animation(anim: AnimationParams) -> AnimationData {
+    let mut sprites: Vec<_> = anim
+        .sprites
+        .into_iter()
+        .enumerate()
+        .map(|(i, sprite)| load_sprite(i, &anim.sprite_sheet, &sprite))
+        .collect();
+    if anim.play_backwards {
+        sprites.reverse();
+    }
     AnimationData {
         looping: anim.looping,
-        sprites: anim
-            .sprites
-            .into_iter()
-            .enumerate()
-            .map(|(i, sprite)| load_sprite(i, &anim.sprite_sheet, &sprite))
-            .collect(),
+        sprites,
     }
 }
 

@@ -1,41 +1,51 @@
-// TODO: use goose anim when available
 AnimationParams (
     sprite_sheet: SpriteSheetParams (
-        texture: "F00_Backward",
-        count_x: 2,
-        count_y: 3,
+        texture: "goose_16_walking",
+        count_x: 1,
+        count_y: 8,
     ),
     sprites: [
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 10,
+            duration: 5,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 10,
+            duration: 5,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 10,
+            duration: 5,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 10,
+            duration: 5,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 10,
+            duration: 5,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 10,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
         ),
     ],
     looping: true,
+    play_backwards: true,
 )

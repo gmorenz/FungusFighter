@@ -1,10 +1,16 @@
 NOW:
 
 [x] non-symmmetric hurtboxes
-[ ] hurtboxes: clamp to y-ranges of sprite
+[x] hurtboxes: clamp to y-ranges of sprite
+[x] walk backwards (quick hack)
+
 [ ] loading files depending on debug config or not
+    (Greg will look into this offline)
 
 [ ] understand fps / syncing logic (maybe check GGRS docs ?)
+    (nice to have)
+
 [x] include new goose anims (walking, etc)
 [-] try out new port (80) and see if I (Kevan) can connect to Greg
+    (Greg wants to figure this out offline)
 
