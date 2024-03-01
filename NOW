@@ -4,6 +4,14 @@ NOW:
 [x] hurtboxes: clamp to y-ranges of sprite
 [x] walk backwards (quick hack)
 
+[ ] impl basic "endurance"/stamina system
+    - tick down slowly when you're moving backwards
+    - tick down a chunk (1/4 of health, say) when you get hit.
+
+[ ] basic jumps
+    - press a key (which?) to jump (set velocity to be upwards)
+    - apply gravity while in the air
+
 [ ] loading files depending on debug config or not
     (Greg will look into this offline)
 
