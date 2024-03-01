@@ -122,8 +122,69 @@ pub const WALKING_BACKWARD: AnimationParams = AnimationParams {
     looping: true,
 };
 
+
+pub const GOOSE_FORWARDS_SPRITES: SpriteSheetParams = SpriteSheetParams {
+    texture: "goose_16_walking",
+    count_x: 1,
+    count_y: 8,
+};
+
+pub const GOOSE_FORWARDS: AnimationParams = AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_FORWARDS_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        },
+    ],
+    looping: true,
+};
+
 pub const GOOSE_STANDING_SPRITES: SpriteSheetParams = SpriteSheetParams {
-    texture: "goose_idle",
+    texture: "goose_16_idle",
     count_x: 1,
     count_y: 2,
 };
@@ -144,6 +205,42 @@ pub const GOOSE_STANDING_ANIMATION: AnimationParams = AnimationParams {
         },
     ],
     looping: true,
+};
+
+pub const GOOSE_ATTACK_SPRITES: SpriteSheetParams = SpriteSheetParams {
+    texture: "goose_16_attack",
+    count_x: 1,
+    count_y: 4,
+};
+
+pub const GOOSE_ATTACK_ANIMATION: AnimationParams = AnimationParams {
+    sprites: &[
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: Some(Vec2 { x: 0.4, y: 0.2 }),
+            duration: 30,
+        },
+        AnnotatedSpriteParams {
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        },
+    ],
+    looping: false,
 };
 
 #[allow(dead_code)]
@@ -189,6 +286,7 @@ pub const ATTACK_SPRITES: SpriteSheetParams = SpriteSheetParams {
     count_y: 3,
 };
 
+#[allow(unused)]
 pub const ATTACK_ANIMATION: AnimationParams = AnimationParams {
     sprites: &[
         AnnotatedSpriteParams {

@@ -14,6 +14,7 @@ struct AnimationParams {
 }
 
 struct AnnotatedSpriteParams {
+    // TODO: Move to AnimationParams
     sprite_sheet: SpriteSheetParams,
 
     hurtbox: bool,
@@ -63,10 +64,10 @@ pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
 
     use data::*;
     anims.insert("block", load_animation(BLOCK).into());
-    anims.insert("forward", load_animation(WALKING_FORWARD).into());
+    anims.insert("forward", load_animation(GOOSE_FORWARDS).into());
     anims.insert("backward", load_animation(WALKING_BACKWARD).into());
     anims.insert("standing", load_animation(GOOSE_STANDING_ANIMATION).into());
-    anims.insert("attack", load_animation(ATTACK_ANIMATION).into());
+    anims.insert("attack", load_animation(GOOSE_ATTACK_ANIMATION).into());
     anims.insert("recoil", load_animation(RECOIL_ANIMATION).into());
 
     anims

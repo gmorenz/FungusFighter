@@ -1,6 +1,8 @@
 Note: Greg's ip: 206.172.98.17 (port 3536)
         "ws://206.172.98.17:3536/foo"
 
+Walking backwards, reverse sprite order.
+
 game design features brainstorming
 - blocking
     hold back to block, or (like street fighter)

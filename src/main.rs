@@ -16,7 +16,7 @@ simple_game!("Goose Fighter", App, setup, update);
 /// The screen is always [-1, 1]
 ///
 /// This means 30 pixels in 0.2 (1 fifth) of a half window.
-const SPRITE_PIXELS_PER_WINDOW_POINT: f32 = 30. / 0.2;
+const SPRITE_PIXELS_PER_WINDOW_POINT: f32 = 16. / 0.2;
 
 const PLAYER_SPEED: f32 = 0.01;
 
