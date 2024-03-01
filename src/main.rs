@@ -1,9 +1,6 @@
-// #![feature(array_methods)]
-
 mod animation;
 
 use std::ops::ControlFlow;
-use std::rc::Rc;
 
 use animation::{Animation, AnimationData};
 use bytemuck::Pod;
@@ -13,18 +10,14 @@ use comfy::*;
 use ggrs::{GgrsError, P2PSession, PlayerHandle, SessionBuilder, SessionState};
 use matchbox_socket::{PeerId, WebRtcSocket};
 
-simple_game!("Fighting Fungus", App, setup, update);
+simple_game!("Goose Fighter", App, setup, update);
 
 /// The screen is always [-1, 1]
 ///
 /// This means 30 pixels in 0.2 (1 fifth) of a half window.
 const SPRITE_PIXELS_PER_WINDOW_POINT: f32 = 30. / 0.2;
 
-// const IDLE_HURTBOX: Vec2 = Vec2 { x: 0.1, y: 0.5 };
-// const ATTACK_HURTBOX: Vec2 = Vec2 { x: 0.3, y: 0.4 };
-// const ATTACK_HITBOX: Vec2 = Vec2 { x: 0.325, y: 0.35 };
 const PLAYER_SPEED: f32 = 0.01;
-// const ATTACK_DURATION: u32 = 30;
 
 #[derive(Clone)]
 enum PlayerState {
@@ -112,7 +105,9 @@ impl App {
     fn new(_e: &mut EngineState) -> Self {
         info!("Constructing socket...");
         // TODO: Use builder, more channels.
-        let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://localhost/foo");
+        // let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://206.172.98.17:3536/?next=2");
+        // let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://206.172.98.17:80/foo");
+        let (socket, message_loop) = WebRtcSocket::new_ggrs("ws://localhost:3536/foo");
         std::thread::spawn(move || {
             futures_lite::future::block_on(message_loop).unwrap();
             panic!("Network socket message loop exited");
@@ -405,14 +400,13 @@ impl PlayingState {
                         || (right && (self.players[i].facing == Direction::West));
 
                     match (forwards, backwards) {
-                        // TODO: Check if this is framerate dependent.
                         (true, false) => {
                             self.players[i].move_(PLAYER_SPEED);
                             self.players[i].ensure_walking_forwards(anims);
                         }
                         (false, true) => {
                             self.players[i].move_(-PLAYER_SPEED);
-                            self.players[i].ensure_walking_backwards(anims); // todo; dir'n
+                            self.players[i].ensure_walking_backwards(anims);
                         }
                         (true, true) | (false, false) => {
                             self.players[i].ensure_standing(anims);
@@ -572,7 +566,6 @@ impl Player {
 
     fn handle_hit(&mut self, anims: &Animations) {
         if self.is_walking_backwards(anims) {
-            // TODO: Block, different animation, some stamina effect...
             self.start_block(anims);
         } else {
             self.health = self.health.saturating_sub(1);

@@ -1,11 +1,25 @@
 use std::cmp::min;
 use std::ops::ControlFlow;
-use std::rc::Rc;
 
 use comfy::image::GenericImageView;
 use comfy::*;
 
 use crate::{Direction, SPRITE_PIXELS_PER_WINDOW_POINT};
+
+mod data;
+
+struct AnimationParams {
+    sprites: &'static [AnnotatedSpriteParams],
+    looping: bool,
+}
+
+struct AnnotatedSpriteParams {
+    sprite_sheet: SpriteSheetParams,
+
+    hurtbox: bool,
+    hitbox: Option<Vec2>,
+    duration: usize,
+}
 
 struct SpriteSheetParams {
     texture: &'static str,
@@ -23,29 +37,6 @@ impl SpriteSheetParams {
     }
 }
 
-struct AnnotatedSpriteParams {
-    sprite_sheet: SpriteSheetParams,
-
-    hurtbox: bool,
-    hitbox: Option<Vec2>,
-    duration: usize,
-}
-
-pub struct AnimationParams {
-    sprites: &'static [AnnotatedSpriteParams], // TODO: + Source Rect
-    looping: bool,
-}
-
-#[derive(Clone)] // TODO: Remove
-pub struct AnnotatedSprite {
-    texture: TextureHandle,
-    source_rect: IRect,
-    pub hitbox: Option<Vec2>,
-    pub hurtbox: Option<Vec2>,
-    pub size: Vec2,
-    duration: usize,
-}
-
 #[derive(Clone)]
 pub struct Animation {
     data: Rc<AnimationData>,
@@ -53,20 +44,24 @@ pub struct Animation {
     frame_counter: usize,
 }
 
-impl Animation {
-    pub fn is_instance(&self, data: &Rc<AnimationData>) -> bool {
-        Rc::ptr_eq(&self.data, data)
-    }
+pub struct AnimationData {
+    sprites: Vec<AnnotatedSprite>,
+    looping: bool,
 }
 
-pub struct AnimationData {
-    sprites: Vec<AnnotatedSprite>, // TODO: + Source Rect
-    looping: bool,
+pub struct AnnotatedSprite {
+    texture: TextureHandle,
+    source_rect: IRect,
+    pub hitbox: Option<Vec2>,
+    pub hurtbox: Option<Vec2>,
+    size: Vec2,
+    duration: usize,
 }
 
 pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
     let mut anims = HashMap::new();
 
+    use data::*;
     anims.insert("block", load_animation(BLOCK).into());
     anims.insert("forward", load_animation(WALKING_FORWARD).into());
     anims.insert("backward", load_animation(WALKING_BACKWARD).into());
@@ -75,6 +70,22 @@ pub fn load_animations() -> HashMap<&'static str, Rc<AnimationData>> {
     anims.insert("recoil", load_animation(RECOIL_ANIMATION).into());
 
     anims
+}
+
+impl AnimationData {
+    pub fn to_anim(self: &Rc<Self>) -> Animation {
+        Animation {
+            data: Rc::clone(self),
+            sprite_index: 0,
+            frame_counter: 0,
+        }
+    }
+}
+
+impl Animation {
+    pub fn is_instance(&self, data: &Rc<AnimationData>) -> bool {
+        Rc::ptr_eq(&self.data, data)
+    }
 }
 
 fn load_animation(params: AnimationParams) -> AnimationData {
@@ -86,16 +97,6 @@ fn load_animation(params: AnimationParams) -> AnimationData {
             .map(|(i, params)| load_sprite(i, params))
             .collect(),
         looping: params.looping,
-    }
-}
-
-impl AnimationData {
-    pub fn to_anim(self: &Rc<Self>) -> Animation {
-        Animation {
-            data: Rc::clone(self),
-            sprite_index: 0,
-            frame_counter: 0,
-        }
     }
 }
 
@@ -157,265 +158,6 @@ fn load_sprite(i: usize, params: &AnnotatedSpriteParams) -> AnnotatedSprite {
         duration: params.duration,
     }
 }
-
-const BLOCK_SPRITES: SpriteSheetParams = SpriteSheetParams {
-    texture: "F00_CrouchGuard",
-    count_x: 1,
-    count_y: 2,
-};
-
-const BLOCK: AnimationParams = AnimationParams {
-    sprites: &[
-        AnnotatedSpriteParams {
-            sprite_sheet: BLOCK_SPRITES,
-            hurtbox: false,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: BLOCK_SPRITES,
-            hurtbox: false,
-            hitbox: None,
-            duration: 10,
-        },
-    ],
-    looping: false,
-};
-
-const WALKING_FORWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
-    texture: "F00_Forward",
-    count_x: 2,
-    count_y: 3,
-};
-
-const WALKING_FORWARD: AnimationParams = AnimationParams {
-    sprites: &[
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_FORWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_FORWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_FORWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_FORWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_FORWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_FORWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-    ],
-    looping: true,
-};
-
-const WALKING_BACKWARD_SPRITES: SpriteSheetParams = SpriteSheetParams {
-    texture: "F00_Backward",
-    count_x: 2,
-    count_y: 3,
-};
-
-const WALKING_BACKWARD: AnimationParams = AnimationParams {
-    sprites: &[
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_BACKWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_BACKWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_BACKWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_BACKWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_BACKWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: WALKING_BACKWARD_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-    ],
-    looping: true,
-};
-
-const GOOSE_STANDING_SPRITES: SpriteSheetParams = SpriteSheetParams {
-    texture: "goose_idle",
-    count_x: 1,
-    count_y: 2,
-};
-
-const GOOSE_STANDING_ANIMATION: AnimationParams = AnimationParams {
-    sprites: &[
-        AnnotatedSpriteParams {
-            sprite_sheet: GOOSE_STANDING_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 30,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: GOOSE_STANDING_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 30,
-        },
-    ],
-    looping: true,
-};
-
-#[allow(dead_code)]
-const FOO_STANDING_ANIMATION: AnimationParams = AnimationParams {
-    sprites: &[
-        AnnotatedSpriteParams {
-            sprite_sheet: SpriteSheetParams::single_sprite("Idle_0"),
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: SpriteSheetParams::single_sprite("Idle_1"),
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: SpriteSheetParams::single_sprite("Idle_2"),
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: SpriteSheetParams::single_sprite("Idle_3"),
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: SpriteSheetParams::single_sprite("Idle_4"),
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-    ],
-    looping: true,
-};
-
-const ATTACK_SPRITES: SpriteSheetParams = SpriteSheetParams {
-    texture: "F00_Attack_0",
-    count_x: 2,
-    count_y: 3,
-};
-
-const ATTACK_ANIMATION: AnimationParams = AnimationParams {
-    sprites: &[
-        AnnotatedSpriteParams {
-            sprite_sheet: ATTACK_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: ATTACK_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: ATTACK_SPRITES,
-            hurtbox: true,
-            hitbox: Some(Vec2 { x: 0.4, y: 0.2 }),
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: ATTACK_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: ATTACK_SPRITES,
-            hurtbox: true,
-            hitbox: None,
-            duration: 10,
-        },
-    ],
-    looping: false,
-};
-
-const RECOIL_SPRITES: SpriteSheetParams = SpriteSheetParams {
-    texture: "F00_Damage",
-    count_x: 2,
-    count_y: 2,
-};
-
-const RECOIL_ANIMATION: AnimationParams = AnimationParams {
-    sprites: &[
-        AnnotatedSpriteParams {
-            sprite_sheet: RECOIL_SPRITES,
-            hurtbox: false,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: RECOIL_SPRITES,
-            hurtbox: false,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: RECOIL_SPRITES,
-            hurtbox: false,
-            hitbox: None,
-            duration: 10,
-        },
-        AnnotatedSpriteParams {
-            sprite_sheet: RECOIL_SPRITES,
-            hurtbox: false,
-            hitbox: None,
-            duration: 10,
-        },
-    ],
-    looping: false,
-};
 
 impl Animation {
     pub fn next_frame(&mut self) -> ControlFlow<()> {

@@ -1,10 +1,6 @@
 NOW:
 
-[x] load anims once at start;
-    lookup by some sort of ~~label~~ field when you need them
-[x] keep the sprites and looping flag (animation "data") behind a
-    refcounted pointer to make clones cheaper
-[x] local mode, to make testing easier
-
-[ ] walking anim
+[ ] try out new port (80) and see if I (Kevan) can connect to Greg
+[ ] understand fps / syncing logic (maybe check GGRS docs ?)
+[ ] include new goose anims (walking, etc)
 
