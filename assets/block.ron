@@ -1,0 +1,21 @@
+// TODO: use goose anim when available
+AnimationParams (
+    sprite_sheet: SpriteSheetParams (
+        texture: "F00_CrouchGuard",
+        count_x: 1,
+        count_y: 2,
+    ),
+    sprites: [
+        AnnotatedSpriteParams (
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: false,
+            hitbox: None,
+            duration: 10,
+        ),
+    ],
+    looping: false,
+)

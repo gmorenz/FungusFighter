@@ -62,7 +62,7 @@ struct Game {
     animations: Animations,
 }
 
-type Animations = HashMap<&'static str, Rc<AnimationData>>;
+type Animations = HashMap<String, Rc<AnimationData>>;
 
 #[derive(Clone)]
 enum GameState {

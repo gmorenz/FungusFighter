@@ -1,0 +1,37 @@
+AnimationParams (
+    sprite_sheet: SpriteSheetParams (
+        texture: "goose_16_attack",
+        count_x: 1,
+        count_y: 4,
+    ),
+    sprites: [
+        AnnotatedSpriteParams (
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        ),
+        AnnotatedSpriteParams (
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        ),
+        AnnotatedSpriteParams (
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: Some(PixelRect (
+                offset: (21, 5),
+                size: (5, 5),
+            )),
+            duration: 30,
+        ),
+        AnnotatedSpriteParams (
+            sprite_sheet: GOOSE_ATTACK_SPRITES,
+            hurtbox: true,
+            hitbox: None,
+            duration: 30,
+        ),
+    ],
+    looping: false,
+)

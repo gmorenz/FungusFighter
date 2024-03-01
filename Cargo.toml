@@ -13,4 +13,6 @@ comfy_include_dir = { version = "0.7.3", features = ["glob"] }
 futures-lite = "2.2.0"
 ggrs = "0.10.0"
 matchbox_socket = { version = "0.8.1", features = ["ggrs"] }
+ron = "0.8.1"
+serde = { version = "1.0.197", features = ["derive"] }
 tracing = "0.1.40"

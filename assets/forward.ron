@@ -1,0 +1,50 @@
+AnimationParams (
+    sprite_sheet: SpriteSheetParams (
+        texture: "goose_16_walking",
+        count_x: 1,
+        count_y: 8,
+    ),
+    sprites: [
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 5,
+        ),
+    ],
+    looping: true,
+)
