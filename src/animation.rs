@@ -159,14 +159,23 @@ fn load_sprite(
         }
     }
 
+    let mut min_y = sprite_height - 1;
+    let mut max_y = 0; // exclusive
+    for (_x, y, value) in sprite_image.pixels() {
+        if value.0[3] != 0 {
+            min_y = min_y.min(y);
+            max_y = max_y.max(y + 1);
+        }
+    }
+
     let hurtbox = AABB {
         min: Vec2 {
             x: (min_x as f32 - sprite_width as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
-            y: sprite_height as f32 * -1. / 2. / SPRITE_PIXELS_PER_WINDOW_POINT,
+            y: -1. * (max_y as f32 - sprite_height as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
         },
         max: Vec2 {
             x: (max_x as f32 - sprite_width as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
-            y: sprite_height as f32 / 2. / SPRITE_PIXELS_PER_WINDOW_POINT,
+            y: -1. * (min_y as f32 - sprite_height as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
         },
     };
 
