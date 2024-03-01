@@ -1,5 +1,5 @@
+use std::fs;
 use std::ops::ControlFlow;
-use std::{cmp::min, fs};
 
 use comfy::anyhow::Context;
 use comfy::image::GenericImageView;
@@ -151,28 +151,24 @@ fn load_sprite(
         comfy::image::imageops::crop_imm(image, sprite_x, sprite_y, sprite_width, sprite_height);
 
     let mut min_x = sprite_width - 1;
-    let mut max_x = 0;
+    let mut max_x = 0; // exclusive
     for (x, _y, value) in sprite_image.pixels() {
         if value.0[3] != 0 {
             min_x = min_x.min(x);
-            max_x = max_x.max(x);
+            max_x = max_x.max(x + 1);
         }
     }
 
-    // Crop both sides in symetrically by the smaller amount
-    let delta_x = min(min_x, sprite_width - 1 - max_x);
-
-    let sprite_size = [(sprite_width - 2 * delta_x) as u32, sprite_height as u32];
-
-    let sprite_offset = [sprite_x + delta_x, sprite_y];
-
-    let hurtbox = AABB::from_center_size(
-        Vec2::ZERO,
-        Vec2 {
-            x: sprite_size[0] as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
-            y: sprite_size[1] as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
+    let hurtbox = AABB {
+        min: Vec2 {
+            x: (min_x as f32 - sprite_width as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
+            y: sprite_height as f32 * -1. / 2. / SPRITE_PIXELS_PER_WINDOW_POINT,
         },
-    );
+        max: Vec2 {
+            x: (max_x as f32 - sprite_width as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
+            y: sprite_height as f32 / 2. / SPRITE_PIXELS_PER_WINDOW_POINT,
+        },
+    };
 
     let hitbox = sprite.hitbox.map(|rect| {
         // in: pixel, y-down, (0,0) topleft
@@ -192,12 +188,15 @@ fn load_sprite(
     AnnotatedSprite {
         texture,
         source_rect: PixelRect {
-            offset: sprite_offset,
-            size: sprite_size,
+            offset: [sprite_x, sprite_y],
+            size: [sprite_width, sprite_height],
         },
         hurtbox: sprite.hurtbox.then(|| hurtbox),
         hitbox,
-        size: hurtbox.size(),
+        size: Vec2 {
+            x: sprite_width as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
+            y: sprite_height as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
+        },
         duration: sprite.duration,
     }
 }

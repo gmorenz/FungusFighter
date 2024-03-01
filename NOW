@@ -1,6 +1,10 @@
 NOW:
 
-[ ] try out new port (80) and see if I (Kevan) can connect to Greg
+[x] non-symmmetric hurtboxes
+[ ] hurtboxes: clamp to y-ranges of sprite
+[ ] loading files depending on debug config or not
+
 [ ] understand fps / syncing logic (maybe check GGRS docs ?)
-[ ] include new goose anims (walking, etc)
+[x] include new goose anims (walking, etc)
+[-] try out new port (80) and see if I (Kevan) can connect to Greg
 
