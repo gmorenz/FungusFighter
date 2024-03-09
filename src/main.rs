@@ -429,7 +429,7 @@ impl PlayingState {
         // Transition states
 
         for (i, p) in self.players.iter_mut().enumerate() {
-            p.endurance = p.endurance.saturating_sub(1); // Tick endurance down each frame.
+            // p.endurance = p.endurance.saturating_sub(1); // Tick endurance down each frame.
             if p.endurance == 0 {
                 return Some(GameState::ScoreScreen { winner: 1 - i });
             }
@@ -455,6 +455,7 @@ impl PlayingState {
         // we rely on input handling to put us in the right walking animation.
 
         for i in 0..2 {
+            let mut x_accel: f32 = 0.0;
             if matches!(self.players[i].state, PlayerState::Idle { .. }) {
                 if inputs[i].0.is_attack_pressed() {
                     self.players[i].start_attack(anims);
@@ -468,7 +469,6 @@ impl PlayingState {
                     let backwards = (left && (self.players[i].facing == Direction::East))
                         || (right && (self.players[i].facing == Direction::West));
 
-                    let mut speed = 0.0;
                     match (forwards, backwards, jump) {
                         (_, _, true) if self.players[i].loc.y == 0.0 => {
                             // TODO: Jump?
@@ -476,20 +476,20 @@ impl PlayingState {
                             self.players[i].ensure_standing(anims);
                         }
                         (true, false, _) => {
-                            speed = PLAYER_SPEED;
+                            x_accel = PLAYER_SPEED;
                             self.players[i].ensure_walking_forwards(anims);
                         }
                         (false, true, _) => {
-                            speed = -PLAYER_SPEED;
+                            x_accel = -PLAYER_SPEED;
                             self.players[i].ensure_walking_backwards(anims);
                         }
                         (true, true, _) | (false, false, _) => {
                             self.players[i].ensure_standing(anims);
                         }
                     }
-                    self.players[i].accelerate(speed);
                 }
             }
+            self.players[i].accelerate(x_accel);
         }
 
         for p in &mut self.players {
