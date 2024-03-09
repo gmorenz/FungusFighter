@@ -5,16 +5,11 @@ AnimationParams (
         count_y: 4,
     ),
     sprites: [
-        // Hack: we don't really want to see this frame, so we set its duration to 1.
-        AnnotatedSpriteParams (
-            hurtbox: false,
-            hitbox: None,
-            duration: 1,
-        ),
         AnnotatedSpriteParams (
             hurtbox: false,
             hitbox: None,
             duration: 10,
+            sprite_index: Some(1),
         ),
         AnnotatedSpriteParams (
             hurtbox: false,

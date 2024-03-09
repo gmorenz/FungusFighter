@@ -24,6 +24,7 @@ struct AnnotatedSpriteParams {
     /// Top-left is (0,0).
     hitbox: Option<PixelRect>,
     duration: usize,
+    sprite_index: Option<usize>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -118,12 +119,15 @@ impl Animation {
 }
 
 fn load_animation(anim: AnimationParams) -> AnimationData {
-    let mut sprites: Vec<_> = anim
-        .sprites
-        .into_iter()
-        .enumerate()
-        .map(|(i, sprite)| load_sprite(i, &anim.sprite_sheet, &sprite))
-        .collect();
+    let mut sprites = Vec::with_capacity(anim.sprites.len());
+
+    let mut expected_sprite_index = 0;
+    for params in anim.sprites {
+        let sprite_index = params.sprite_index.unwrap_or(expected_sprite_index);
+        sprites.push(load_sprite(sprite_index, &anim.sprite_sheet, &params));
+        expected_sprite_index = sprite_index + 1;
+    }
+
     if anim.play_backwards {
         sprites.reverse();
     }
@@ -134,7 +138,7 @@ fn load_animation(anim: AnimationParams) -> AnimationData {
 }
 
 fn load_sprite(
-    i: usize,
+    sprite_index: usize,
     sprite_sheet: &SpriteSheetParams,
     sprite: &AnnotatedSpriteParams,
 ) -> AnnotatedSprite {
@@ -146,8 +150,8 @@ fn load_sprite(
     let sprite_width = image.width() / sprite_sheet.count_x;
     let sprite_height = image.height() / sprite_sheet.count_y;
 
-    let x = i as u32 % sprite_sheet.count_x;
-    let y = i as u32 / sprite_sheet.count_x;
+    let x = sprite_index as u32 % sprite_sheet.count_x;
+    let y = sprite_index as u32 / sprite_sheet.count_x;
     assert!(y < sprite_sheet.count_y);
 
     let sprite_x = sprite_width * x;

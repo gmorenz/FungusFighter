@@ -21,7 +21,13 @@ AnimationParams (
                 offset: (21, 5),
                 size: (5, 5),
             )),
-            duration: 10,
+            duration: 1,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 9,
+            sprite_index: Some(2),
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
