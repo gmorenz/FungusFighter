@@ -36,8 +36,9 @@ enum Direction {
 #[derive(Clone)]
 struct Player {
     facing: Direction,
-    loc: f32,
+    loc: Vec2,
     endurance: u32,
+    velocity: Vec2,
 
     // Animation counts frames, and is authoratative
     animation: Animation,
@@ -100,6 +101,7 @@ impl Input {
     const LEFT: u8 = 0b001;
     const RIGHT: u8 = 0b010;
     const ATTACK: u8 = 0b100;
+    const JUMP: u8 = 0b1000;
 }
 
 impl App {
@@ -249,14 +251,16 @@ fn start_game(session: P2PSession<GGRSConfig>) -> App {
                 Player {
                     facing: Direction::East,
                     animation: animations["standing"].to_anim(),
-                    loc: -0.5,
+                    loc: Vec2::new(-0.5, 0.0),
+                    velocity: Vec2::ZERO,
                     state: PlayerState::Idle,
                     endurance: MAX_ENDURANCE,
                 },
                 Player {
                     facing: Direction::West,
                     animation: animations["standing"].to_anim(),
-                    loc: 0.5,
+                    loc: Vec2::new(0.5, 0.0),
+                    velocity: Vec2::ZERO,
                     state: PlayerState::Idle,
                     endurance: MAX_ENDURANCE,
                 },
@@ -374,6 +378,9 @@ fn get_local_input(idx: usize) -> Input {
             if is_key_down(KeyCode::Space) {
                 bits |= Input::ATTACK;
             }
+            if is_key_down(KeyCode::W) {
+                bits |= Input::JUMP;
+            }
         }
         1 => {
             if is_key_down(KeyCode::Left) {
@@ -384,6 +391,9 @@ fn get_local_input(idx: usize) -> Input {
             }
             if is_key_down(KeyCode::Down) {
                 bits |= Input::ATTACK;
+            }
+            if is_key_down(KeyCode::Up) {
+                bits |= Input::JUMP;
             }
         }
         _ => unimplemented!(),
@@ -403,6 +413,10 @@ impl Input {
 
     fn is_right_pressed(self) -> bool {
         self.input_bits & Self::RIGHT != 0
+    }
+
+    fn is_jump_pressed(self) -> bool {
+        self.input_bits & Self::JUMP != 0
     }
 }
 
@@ -426,10 +440,10 @@ impl PlayingState {
             }
         }
 
-        if self.players[0].loc < self.players[1].loc {
+        if self.players[0].loc.x < self.players[1].loc.x {
             self.players[0].facing = Direction::East;
             self.players[1].facing = Direction::West;
-        } else if self.players[0].loc > self.players[1].loc {
+        } else if self.players[0].loc.x > self.players[1].loc.x {
             self.players[0].facing = Direction::West;
             self.players[1].facing = Direction::East;
         }
@@ -446,28 +460,40 @@ impl PlayingState {
                     self.players[i].start_attack(anims);
                 } else {
                     let left = inputs[i].0.is_left_pressed();
-                    let right: bool = inputs[i].0.is_right_pressed();
+                    let right = inputs[i].0.is_right_pressed();
+                    let jump = inputs[i].0.is_jump_pressed();
 
                     let forwards = (left && (self.players[i].facing == Direction::West))
                         || (right && (self.players[i].facing == Direction::East));
                     let backwards = (left && (self.players[i].facing == Direction::East))
                         || (right && (self.players[i].facing == Direction::West));
 
-                    match (forwards, backwards) {
-                        (true, false) => {
-                            self.players[i].move_(PLAYER_SPEED);
+                    let mut speed = 0.0;
+                    match (forwards, backwards, jump) {
+                        (_, _, true) if self.players[i].loc.y == 0.0 => {
+                            // TODO: Jump?
+                            self.players[i].velocity.y = 0.05;
+                            self.players[i].ensure_standing(anims);
+                        }
+                        (true, false, _) => {
+                            speed = PLAYER_SPEED;
                             self.players[i].ensure_walking_forwards(anims);
                         }
-                        (false, true) => {
-                            self.players[i].move_(-PLAYER_SPEED);
+                        (false, true, _) => {
+                            speed = -PLAYER_SPEED;
                             self.players[i].ensure_walking_backwards(anims);
                         }
-                        (true, true) | (false, false) => {
+                        (true, true, _) | (false, false, _) => {
                             self.players[i].ensure_standing(anims);
                         }
                     }
+                    self.players[i].accelerate(speed);
                 }
             }
+        }
+
+        for p in &mut self.players {
+            p.update_loc();
         }
 
         // Handle attacks
@@ -547,20 +573,31 @@ impl PlayingState {
 }
 
 impl Player {
-    fn move_(&mut self, speed: f32) {
-        let transform = match self.facing {
+    fn accelerate(&mut self, speed: f32) {
+        let x_transform = match self.facing {
             Direction::East => 1.0,
             Direction::West => -1.0,
         };
-        self.loc += speed * transform;
-        self.loc = self.loc.clamp(-1.0, 1.0);
+        if self.loc.y == 0.0 && self.velocity.y == 0.0 {
+            self.velocity.x = speed * x_transform;
+        } else {
+            self.velocity.x += 0.1 * speed * x_transform;
+            self.velocity.y -= 0.002;
+        }
+    }
+
+    fn update_loc(&mut self) {
+        self.loc += self.velocity;
+        self.loc.x = self.loc.x.clamp(-1.0, 1.0);
+        if self.loc.y < 0.0 {
+            // TODO: No landing animation?
+            self.loc.y = 0.0;
+            self.velocity.y = 0.0;
+        }
     }
 
     fn center(&self) -> Vec2 {
-        Vec2 {
-            x: self.loc,
-            y: 0.0,
-        }
+        self.loc
     }
 
     fn hitbox(&self) -> Option<AABB> {
