@@ -39,6 +39,7 @@ struct Player {
     loc: Vec2,
     endurance: u32,
     velocity: Vec2,
+    tint: Color,
 
     // Animation counts frames, and is authoratative
     animation: Animation,
@@ -249,6 +250,7 @@ fn start_game(session: P2PSession<GGRSConfig>) -> App {
         state: GameState::Playing(PlayingState {
             players: [
                 Player {
+                    tint: Color::rgb(1.0, 0.8, 0.8),
                     facing: Direction::East,
                     animation: animations["standing"].to_anim(),
                     loc: Vec2::new(-0.5, 0.0),
@@ -257,6 +259,7 @@ fn start_game(session: P2PSession<GGRSConfig>) -> App {
                     endurance: MAX_ENDURANCE,
                 },
                 Player {
+                    tint: Color::rgb(0.8, 0.8, 1.0),
                     facing: Direction::West,
                     animation: animations["standing"].to_anim(),
                     loc: Vec2::new(0.5, 0.0),
@@ -429,7 +432,7 @@ impl PlayingState {
         // Transition states
 
         for (i, p) in self.players.iter_mut().enumerate() {
-            // p.endurance = p.endurance.saturating_sub(1); // Tick endurance down each frame.
+            p.endurance = p.endurance.saturating_sub(1); // Tick endurance down each frame.
             if p.endurance == 0 {
                 return Some(GameState::ScoreScreen { winner: 1 - i });
             }
@@ -557,7 +560,7 @@ impl PlayingState {
                 x: self.players[0].endurance as f32 / MAX_ENDURANCE as f32 * 0.95,
                 y: 0.05,
             },
-            DARKGREEN,
+            self.players[0].tint,
             1,
         );
         draw_rect(
@@ -566,7 +569,7 @@ impl PlayingState {
                 x: self.players[1].endurance as f32 / MAX_ENDURANCE as f32 * 0.95,
                 y: 0.05,
             },
-            DARKGREEN,
+            self.players[1].tint,
             1,
         );
     }
@@ -623,7 +626,7 @@ impl Player {
     }
 
     fn render_sprite(&self) {
-        self.animation.render(self.center(), self.facing);
+        self.animation.render(self.tint, self.center(), self.facing);
     }
 
     fn start_attack(&mut self, anims: &Animations) {

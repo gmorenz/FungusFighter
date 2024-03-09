@@ -242,12 +242,12 @@ impl Animation {
     }
 
     /// Player 1 faces right (no flip); player 2 faces left (flip).
-    pub fn render(&self, location: Vec2, facing: Direction) {
+    pub fn render(&self, tint: Color, location: Vec2, facing: Direction) {
         let sprite = self.sprite();
         draw_sprite_ex(
             sprite.texture,
             location,
-            WHITE,
+            tint,
             2,
             DrawTextureParams {
                 dest_size: Some(sprite.size.as_world_size()),
