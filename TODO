@@ -43,7 +43,7 @@ NOW:
     [x] add them
     [x] remove the first frame of each
 
-[ ] impl basic "endurance"/stamina system
+[x] impl basic "endurance"/stamina system
     - tick down slowly when you're moving backwards
     - tick down a chunk (1/4 of health, say) when you get hit.
 
@@ -56,4 +56,3 @@ NOW:
 
 [ ] understand fps / syncing logic (maybe check GGRS docs ?)
     (nice to have)
-
