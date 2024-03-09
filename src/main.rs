@@ -37,7 +37,7 @@ enum Direction {
 struct Player {
     facing: Direction,
     loc: f32,
-    health: u32,
+    endurance: u32,
 
     // Animation counts frames, and is authoratative
     animation: Animation,
@@ -231,6 +231,10 @@ fn update(app: &mut App, _c: &mut EngineContext) {
     }
 }
 
+const MAX_ENDURANCE: u32 = 60 * 10;
+const ENDURANCE_ADD_ATTACK: u32 = 60;
+const ENDURANCE_SUB_HIT: u32 = 3 * 60;
+
 fn start_game(session: P2PSession<GGRSConfig>) -> App {
     let animations = animation::load_animations();
 
@@ -247,14 +251,14 @@ fn start_game(session: P2PSession<GGRSConfig>) -> App {
                     animation: animations["standing"].to_anim(),
                     loc: -0.5,
                     state: PlayerState::Idle,
-                    health: 3,
+                    endurance: MAX_ENDURANCE,
                 },
                 Player {
                     facing: Direction::West,
                     animation: animations["standing"].to_anim(),
                     loc: 0.5,
                     state: PlayerState::Idle,
-                    health: 3,
+                    endurance: MAX_ENDURANCE,
                 },
             ],
         }),
@@ -411,7 +415,8 @@ impl PlayingState {
         // Transition states
 
         for (i, p) in self.players.iter_mut().enumerate() {
-            if p.health == 0 {
+            p.endurance = p.endurance.saturating_sub(1); // Tick endurance down each frame.
+            if p.endurance == 0 {
                 return Some(GameState::ScoreScreen { winner: 1 - i });
             }
 
@@ -521,18 +526,18 @@ impl PlayingState {
         }
 
         draw_rect(
-            Vec2 { x: -0.75, y: 0.4 },
+            Vec2 { x: -0.5, y: 0.4 },
             Vec2 {
-                x: self.players[0].health as f32 / 10.0,
+                x: self.players[0].endurance as f32 / MAX_ENDURANCE as f32 * 0.95,
                 y: 0.05,
             },
             DARKGREEN,
             1,
         );
         draw_rect(
-            Vec2 { x: 0.75, y: 0.4 },
+            Vec2 { x: 0.5, y: 0.4 },
             Vec2 {
-                x: self.players[1].health as f32 / 10.0,
+                x: self.players[1].endurance as f32 / MAX_ENDURANCE as f32 * 0.95,
                 y: 0.05,
             },
             DARKGREEN,
@@ -586,6 +591,7 @@ impl Player {
 
     fn start_attack(&mut self, anims: &Animations) {
         self.state = PlayerState::Attacking;
+        self.endurance = (self.endurance + ENDURANCE_ADD_ATTACK).min(MAX_ENDURANCE);
         self.animation = anims["attack"].to_anim();
     }
 
@@ -629,7 +635,7 @@ impl Player {
         if self.is_walking_backwards(anims) {
             self.start_block(anims);
         } else {
-            self.health = self.health.saturating_sub(1);
+            self.endurance = self.endurance.saturating_sub(ENDURANCE_SUB_HIT);
             self.start_recoil(anims);
         }
     }
