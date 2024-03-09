@@ -1,9 +1,8 @@
-// TODO: use goose anim when available
 AnimationParams (
     sprite_sheet: SpriteSheetParams (
-        texture: "F00_Damage",
-        count_x: 2,
-        count_y: 2,
+        texture: "goose_16_ouch",
+        count_x: 1,
+        count_y: 4,
     ),
     sprites: [
         AnnotatedSpriteParams (

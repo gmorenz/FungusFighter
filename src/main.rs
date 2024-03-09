@@ -105,7 +105,8 @@ impl Input {
 impl App {
     fn new(_e: &mut EngineState) -> Self {
         App::StartMenu {
-            server: "localhost:3536".into(),
+            // server: "localhost:3536".into(),
+            server: "gregs-macbook-air:3536".into(),
         }
     }
 }

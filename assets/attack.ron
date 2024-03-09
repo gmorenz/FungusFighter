@@ -6,19 +6,16 @@ AnimationParams (
     ),
     sprites: [
         AnnotatedSpriteParams (
-            sprite_sheet: GOOSE_ATTACK_SPRITES,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         ),
         AnnotatedSpriteParams (
-            sprite_sheet: GOOSE_ATTACK_SPRITES,
             hurtbox: true,
             hitbox: None,
             duration: 10,
         ),
         AnnotatedSpriteParams (
-            sprite_sheet: GOOSE_ATTACK_SPRITES,
             hurtbox: true,
             hitbox: Some(PixelRect (
                 offset: (21, 5),
@@ -27,7 +24,6 @@ AnimationParams (
             duration: 10,
         ),
         AnnotatedSpriteParams (
-            sprite_sheet: GOOSE_ATTACK_SPRITES,
             hurtbox: true,
             hitbox: None,
             duration: 10,

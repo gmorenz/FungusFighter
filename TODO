@@ -39,9 +39,9 @@ dev feature:
 
 NOW:
 
-[x] non-symmmetric hurtboxes
-[x] hurtboxes: clamp to y-ranges of sprite
-[x] walk backwards (quick hack)
+[ ] new goose anims: block, "ouch"
+    [x] add them
+    [ ] remove the first frame of each
 
 [ ] impl basic "endurance"/stamina system
     - tick down slowly when you're moving backwards
@@ -56,8 +56,4 @@ NOW:
 
 [ ] understand fps / syncing logic (maybe check GGRS docs ?)
     (nice to have)
-
-[x] include new goose anims (walking, etc)
-[-] try out new port (80) and see if I (Kevan) can connect to Greg
-    (Greg wants to figure this out offline)
 
