@@ -39,9 +39,9 @@ dev feature:
 
 NOW:
 
-[ ] new goose anims: block, "ouch"
+[x] new goose anims: block, "ouch"
     [x] add them
-    [ ] remove the first frame of each
+    [x] remove the first frame of each
 
 [ ] impl basic "endurance"/stamina system
     - tick down slowly when you're moving backwards
