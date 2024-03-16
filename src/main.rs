@@ -179,8 +179,15 @@ fn update(app: &mut App, _c: &mut EngineContext) {
                             // TODO: Sort of a injection vulnerability.
                             let (socket, message_loop) =
                                 WebRtcSocket::new_ggrs(format!("ws://{server}/foo"));
+
+                            #[cfg(not(target_arch="wasm32"))]
                             std::thread::spawn(move || {
                                 futures_lite::future::block_on(message_loop).unwrap();
+                                panic!("Network socket message loop exited");
+                            });
+                            #[cfg(target_arch="wasm32")]
+                            wasm_bindgen_futures::spawn_local(async move {
+                                message_loop.await.unwrap();
                                 panic!("Network socket message loop exited");
                             });
 
