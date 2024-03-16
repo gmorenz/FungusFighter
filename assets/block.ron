@@ -8,19 +8,19 @@ AnimationParams (
         AnnotatedSpriteParams (
             hurtbox: false,
             hitbox: None,
-            duration: 10,
+            duration: 5,
             sprite_index: Some(1),
         ),
         AnnotatedSpriteParams (
             hurtbox: false,
             hitbox: None,
-            duration: 10,
+            duration: 5,
         ),
         // Note the duration (2x as long).
         AnnotatedSpriteParams (
             hurtbox: false,
             hitbox: None,
-            duration: 20,
+            duration: 15,
         ),
     ],
     looping: false,
