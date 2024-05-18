@@ -1,4 +1,3 @@
-use std::fs;
 use std::ops::ControlFlow;
 
 use comfy::anyhow::Context;
@@ -6,7 +5,7 @@ use comfy::image::GenericImageView;
 use comfy::*;
 use serde::Deserialize;
 
-use crate::{Direction, SPRITE_PIXELS_PER_WINDOW_POINT};
+use crate::{assets_dir, Direction, SPRITE_PIXELS_PER_WINDOW_POINT};
 
 #[derive(Deserialize)]
 struct AnimationParams {
@@ -80,18 +79,16 @@ pub struct AnnotatedSprite {
 pub fn load_animations() -> HashMap<String, Rc<AnimationData>> {
     let mut anims = HashMap::new();
 
-    // TODO: remove the runtime dependency on this specific path
-    for entry in fs::read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/assets")).unwrap() {
-        let entry = entry.unwrap();
-        let path = entry.path();
+    for file in assets_dir().files() {
+        let path = file.path();
         let Some(ext) = path.extension() else {
             continue;
         };
         if ext == "ron" {
             let name = path.file_stem().unwrap().to_str().unwrap().to_string();
-            let contents = fs::read_to_string(path).unwrap();
+            let contents = file.contents_utf8().unwrap();
             let data = Rc::new(load_animation(
-                ron::from_str::<AnimationParams>(&contents)
+                ron::from_str::<AnimationParams>(contents)
                     .with_context(|| name.clone())
                     .unwrap_or_else(|e| panic!("{e}")),
             ));

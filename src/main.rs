@@ -3,10 +3,10 @@ mod animation;
 use std::mem;
 use std::ops::ControlFlow;
 
+use ::include_dir::{Dir, DirEntry};
 use animation::{Animation, AnimationData};
 use bytemuck::Pod;
 use comfy::bytemuck::Zeroable;
-use comfy::include_dir::{include_dir, Dir, DirEntry};
 use comfy::*;
 use ggrs::{GgrsError, NonBlockingSocket, P2PSession, SessionBuilder, SessionState};
 use matchbox_socket::{PeerId, WebRtcSocket};
@@ -114,14 +114,32 @@ impl App {
     }
 }
 
-static ASSETS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/assets");
+fn assets_dir() -> Dir<'static> {
+    // TODO: figure this stuff out...
+
+    // TODO: Instead, always include the directory into the executable, and fall
+    // back to it when unable to read from the directory at runtime.
+    // #[cfg(target_arch = "wasm32")]
+    {
+        use ::include_dir::include_dir;
+        static ASSETS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/assets");
+        return ASSETS_DIR.clone();
+    }
+
+    // #[cfg(not(target_arch = "wasm32"))]
+    // {
+    //     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets");
+    //     Dir::from_fs(path).unwrap()
+    // }
+}
 
 fn setup(_app: &mut App, c: &mut EngineContext) {
     let mut camera = main_camera_mut();
     camera.zoom = 2.0;
 
     // Load textures
-    for entry in ASSETS_DIR.find("**/*.png").unwrap() {
+    let dir = assets_dir();
+    for entry in dir.find("**/*.png").unwrap() {
         if let DirEntry::File(file) = entry {
             c.load_texture_from_bytes(
                 file.path().file_stem().unwrap().to_str().unwrap(),
@@ -180,12 +198,12 @@ fn update(app: &mut App, _c: &mut EngineContext) {
                             let (socket, message_loop) =
                                 WebRtcSocket::new_ggrs(format!("ws://{server}/foo"));
 
-                            #[cfg(not(target_arch="wasm32"))]
+                            #[cfg(not(target_arch = "wasm32"))]
                             std::thread::spawn(move || {
                                 futures_lite::future::block_on(message_loop).unwrap();
                                 panic!("Network socket message loop exited");
                             });
-                            #[cfg(target_arch="wasm32")]
+                            #[cfg(target_arch = "wasm32")]
                             wasm_bindgen_futures::spawn_local(async move {
                                 message_loop.await.unwrap();
                                 panic!("Network socket message loop exited");

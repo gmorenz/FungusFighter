@@ -37,7 +37,13 @@ dev feature:
 
 ---
 
-NOW:
+LEFT OFF:
+
+[ ] getting WASM to work
+    [ ] replacing runtime filesystem reads with compiletime includes
+        [ ] debugging compiler errors related to `errno` crate, on wasm
+
+NEXT:
 
 [x] new goose anims: block, "ouch"
     [x] add them
@@ -56,3 +62,4 @@ NOW:
 
 [ ] understand fps / syncing logic (maybe check GGRS docs ?)
     (nice to have)
+

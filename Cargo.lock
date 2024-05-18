@@ -893,7 +893,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b55b28713b87d1808d04df17a4df54e7fe2d98faf538e08823bb63a80d99dc6"
 dependencies = [
  "comfy_include_dir_macros",
- "glob",
 ]
 
 [[package]]
@@ -1708,9 +1707,9 @@ dependencies = [
  "async-executor",
  "bytemuck",
  "comfy",
- "comfy_include_dir",
  "futures-lite 2.2.0",
  "ggrs",
+ "include_dir",
  "matchbox_socket",
  "ron",
  "serde",
@@ -2185,6 +2184,24 @@ dependencies = [
  "jpeg-decoder",
  "num-traits",
  "png",
+]
+
+[[package]]
+name = "include_dir"
+version = "0.7.3"
+source = "git+https://github.com/gmorenz/include_dir?branch=maybe#339afbb49c91f5307bb12ab5ba190b42d7153587"
+dependencies = [
+ "glob",
+ "include_dir_macros",
+]
+
+[[package]]
+name = "include_dir_macros"
+version = "0.7.3"
+source = "git+https://github.com/gmorenz/include_dir?branch=maybe#339afbb49c91f5307bb12ab5ba190b42d7153587"
+dependencies = [
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]
