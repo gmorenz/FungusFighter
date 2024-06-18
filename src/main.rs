@@ -37,7 +37,8 @@ enum Direction {
 struct Player {
     facing: Direction,
     loc: Vec2,
-    endurance: u32,
+    /// How many more times can you safely block an attack.
+    shield: u32,
     velocity: Vec2,
     tint: Color,
 
@@ -259,9 +260,7 @@ fn update(app: &mut App, _c: &mut EngineContext) {
     }
 }
 
-const MAX_ENDURANCE: u32 = 60 * 10;
-const ENDURANCE_ADD_ATTACK: u32 = 60;
-const ENDURANCE_SUB_HIT: u32 = 3 * 60;
+const MAX_SHIELD: u32 = 3;
 
 fn start_game(session: P2PSession<GGRSConfig>) -> App {
     let animations = animation::load_animations();
@@ -281,7 +280,7 @@ fn start_game(session: P2PSession<GGRSConfig>) -> App {
                     loc: Vec2::new(-0.5, 0.0),
                     velocity: Vec2::ZERO,
                     state: PlayerState::Idle,
-                    endurance: MAX_ENDURANCE,
+                    shield: MAX_SHIELD,
                 },
                 Player {
                     tint: Color::rgb(0.8, 0.8, 1.0),
@@ -290,7 +289,7 @@ fn start_game(session: P2PSession<GGRSConfig>) -> App {
                     loc: Vec2::new(0.5, 0.0),
                     velocity: Vec2::ZERO,
                     state: PlayerState::Idle,
-                    endurance: MAX_ENDURANCE,
+                    shield: MAX_SHIELD,
                 },
             ],
         }),
@@ -457,8 +456,7 @@ impl PlayingState {
         // Transition states
 
         for (i, p) in self.players.iter_mut().enumerate() {
-            p.endurance = p.endurance.saturating_sub(1); // Tick endurance down each frame.
-            if p.endurance == 0 {
+            if p.shield == 0 {
                 return Some(GameState::ScoreScreen { winner: 1 - i });
             }
 
@@ -582,7 +580,7 @@ impl PlayingState {
         draw_rect(
             Vec2 { x: -0.5, y: 0.4 },
             Vec2 {
-                x: self.players[0].endurance as f32 / MAX_ENDURANCE as f32 * 0.95,
+                x: self.players[0].shield as f32 / MAX_SHIELD as f32 * 0.95,
                 y: 0.05,
             },
             self.players[0].tint,
@@ -591,7 +589,7 @@ impl PlayingState {
         draw_rect(
             Vec2 { x: 0.5, y: 0.4 },
             Vec2 {
-                x: self.players[1].endurance as f32 / MAX_ENDURANCE as f32 * 0.95,
+                x: self.players[1].shield as f32 / MAX_SHIELD as f32 * 0.95,
                 y: 0.05,
             },
             self.players[1].tint,
@@ -656,7 +654,6 @@ impl Player {
 
     fn start_attack(&mut self, anims: &Animations) {
         self.state = PlayerState::Attacking;
-        self.endurance = (self.endurance + ENDURANCE_ADD_ATTACK).min(MAX_ENDURANCE);
         self.animation = anims["attack"].to_anim();
     }
 
@@ -700,7 +697,8 @@ impl Player {
         if self.is_walking_backwards(anims) {
             self.start_block(anims);
         } else {
-            self.endurance = self.endurance.saturating_sub(ENDURANCE_SUB_HIT);
+            assert_ne!(self.shield, 0); // todo
+            self.shield -= 1;
             self.start_recoil(anims);
         }
     }
