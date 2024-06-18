@@ -1,8 +1,8 @@
 AnimationParams (
     sprite_sheet: SpriteSheetParams (
-        texture: "goose_16_attack",
-        count_x: 1,
-        count_y: 4,
+        texture: "attack_0",
+        count_x: 2,
+        count_y: 3,
     ),
     sprites: [
         AnnotatedSpriteParams (
@@ -18,8 +18,8 @@ AnimationParams (
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: Some(PixelRect (
-                offset: (21, 5),
-                size: (5, 5),
+                offset: (53, 43),
+                size: (7, 7),
             )),
             duration: 1,
         ),
@@ -28,6 +28,11 @@ AnimationParams (
             hitbox: None,
             duration: 9,
             sprite_index: Some(2),
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,

@@ -1,19 +1,34 @@
 AnimationParams (
     sprite_sheet: SpriteSheetParams (
-        texture: "goose_16_idle",
-        count_x: 1,
-        count_y: 2,
+        texture: "idle",
+        count_x: 2,
+        count_y: 3,
     ),
     sprites: [
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 30,
+            duration: 10,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 30,
+            duration: 10,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
+        ),
+        AnnotatedSpriteParams (
+            hurtbox: true,
+            hitbox: None,
+            duration: 10,
         ),
     ],
     looping: true,
