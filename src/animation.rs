@@ -1,8 +1,6 @@
 use std::ops::ControlFlow;
 
-use comfy::anyhow::Context;
-use comfy::image::GenericImageView;
-use comfy::*;
+use comfy::{anyhow::Context, image::GenericImageView, *};
 use serde::Deserialize;
 
 use crate::{assets_dir, Direction, SPRITE_PIXELS_PER_WINDOW_POINT};

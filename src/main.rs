@@ -1,13 +1,11 @@
 mod animation;
 
-use std::mem;
-use std::ops::ControlFlow;
+use std::{mem, ops::ControlFlow};
 
 use ::include_dir::{Dir, DirEntry};
 use animation::{Animation, AnimationData};
 use bytemuck::Pod;
-use comfy::bytemuck::Zeroable;
-use comfy::*;
+use comfy::{bytemuck::Zeroable, *};
 use ggrs::{GgrsError, NonBlockingSocket, P2PSession, SessionBuilder, SessionState};
 use matchbox_socket::{PeerId, WebRtcSocket};
 
@@ -20,11 +18,12 @@ const SPRITE_PIXELS_PER_WINDOW_POINT: f32 = 16. / 0.2;
 
 const PLAYER_SPEED: f32 = 0.01;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 enum PlayerState {
     Idle,
     Recoiling,
     Attacking,
+    Death,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -456,12 +455,10 @@ impl PlayingState {
         // Transition states
 
         for (i, p) in self.players.iter_mut().enumerate() {
-            if p.shield == 0 {
-                return Some(GameState::ScoreScreen { winner: 1 - i });
-            }
-
-            // TODO: Handle return
             if matches!(p.animation.next_frame(), ControlFlow::Break(())) {
+                if p.state == PlayerState::Death {
+                    return Some(GameState::ScoreScreen { winner: 1 - i });
+                }
                 p.start_idle();
             }
         }
@@ -679,8 +676,12 @@ impl Player {
         }
     }
 
-    fn is_walking_backwards(&mut self, anims: &Animations) -> bool {
+    fn is_walking_backwards(&self, anims: &Animations) -> bool {
         self.animation.is_instance(&anims["backward"])
+    }
+
+    fn is_recoiling(&self, anims: &Animations) -> bool {
+        self.animation.is_instance(&anims["recoil"])
     }
 
     fn start_recoil(&mut self, anims: &Animations) {
@@ -693,11 +694,18 @@ impl Player {
         self.animation = anims["block"].to_anim();
     }
 
+    fn start_death(&mut self, anims: &Animations) {
+        self.state = PlayerState::Death;
+        self.animation = anims["death"].to_anim();
+    }
+
     fn handle_hit(&mut self, anims: &Animations) {
         if self.is_walking_backwards(anims) {
             self.start_block(anims);
+        } else if self.is_recoiling(anims) {
+            self.start_death(anims);
         } else {
-            assert_ne!(self.shield, 0); // todo
+            assert_ne!(self.shield, 0); // todo: guard break
             self.shield -= 1;
             self.start_recoil(anims);
         }

@@ -6,18 +6,18 @@ AnimationParams (
     ),
     sprites: [
         AnnotatedSpriteParams (
-            hurtbox: true,
+            hurtbox: false,
             hitbox: None,
             duration: 10,
             sprite_index: Some(1),
         ),
         AnnotatedSpriteParams (
-            hurtbox: true,
+            hurtbox: false,
             hitbox: None,
-            duration: 100,
+            duration: 10,
         ),
         AnnotatedSpriteParams (
-            hurtbox: true,
+            hurtbox: false,
             hitbox: None,
             duration: 10,
         ),
