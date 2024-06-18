@@ -22,6 +22,7 @@ const PLAYER_SPEED: f32 = 0.01;
 enum PlayerState {
     Idle,
     Recoiling,
+    Blocking,
     Attacking,
     Death,
 }
@@ -680,17 +681,13 @@ impl Player {
         self.animation.is_instance(&anims["backward"])
     }
 
-    fn is_recoiling(&self, anims: &Animations) -> bool {
-        self.animation.is_instance(&anims["recoil"])
-    }
-
     fn start_recoil(&mut self, anims: &Animations) {
         self.state = PlayerState::Recoiling;
         self.animation = anims["recoil"].to_anim();
     }
 
     fn start_block(&mut self, anims: &Animations) {
-        self.state = PlayerState::Recoiling; // TODO: Different state?
+        self.state = PlayerState::Blocking;
         self.animation = anims["block"].to_anim();
     }
 
@@ -699,14 +696,23 @@ impl Player {
         self.animation = anims["death"].to_anim();
     }
 
+    fn start_guard_broken(&mut self, anims: &Animations) {
+        self.state = PlayerState::Recoiling;
+        self.animation = anims["guard_broken"].to_anim();
+    }
+
     fn handle_hit(&mut self, anims: &Animations) {
         if self.is_walking_backwards(anims) {
-            self.start_block(anims);
-        } else if self.is_recoiling(anims) {
+            if self.shield == 0 {
+                self.start_guard_broken(anims);
+            } else {
+                self.shield -= 1;
+                self.start_block(anims);
+            }
+        } else if self.state == PlayerState::Recoiling {
             self.start_death(anims);
         } else {
-            assert_ne!(self.shield, 0); // todo: guard break
-            self.shield -= 1;
+            self.shield = self.shield.saturating_sub(1);
             self.start_recoil(anims);
         }
     }

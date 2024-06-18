@@ -14,7 +14,7 @@ AnimationParams (
         AnnotatedSpriteParams (
             hurtbox: true,
             hitbox: None,
-            duration: 50,
+            duration: 100,
         ),
         AnnotatedSpriteParams (
             hurtbox: true,
