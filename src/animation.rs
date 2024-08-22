@@ -3,7 +3,7 @@ use std::ops::ControlFlow;
 use comfy::{anyhow::Context, image::GenericImageView, *};
 use serde::Deserialize;
 
-use crate::{assets_dir, Direction, SPRITE_PIXELS_PER_WINDOW_POINT};
+use crate::{assets_dir, Direction};
 
 #[derive(Deserialize)]
 struct AnimationParams {
@@ -173,14 +173,16 @@ fn load_sprite(
         }
     }
 
+    let normalization_factor = sprite_width as f32 * 2.5;
+
     let hurtbox = AABB {
         min: Vec2 {
-            x: (min_x as f32 - sprite_width as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
-            y: -1. * (max_y as f32 - sprite_height as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
+            x: (min_x as f32 - sprite_width as f32 / 2.) / normalization_factor,
+            y: -1. * (max_y as f32 - sprite_height as f32 / 2.) / normalization_factor,
         },
         max: Vec2 {
-            x: (max_x as f32 - sprite_width as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
-            y: -1. * (min_y as f32 - sprite_height as f32 / 2.) / SPRITE_PIXELS_PER_WINDOW_POINT,
+            x: (max_x as f32 - sprite_width as f32 / 2.) / normalization_factor,
+            y: -1. * (min_y as f32 - sprite_height as f32 / 2.) / normalization_factor,
         },
     };
 
@@ -190,11 +192,11 @@ fn load_sprite(
 
         let center_x = sprite_width as f32 / 2.;
         let center_y = sprite_height as f32 / 2.;
-        let x = (rect.offset[0] as f32 - center_x) / SPRITE_PIXELS_PER_WINDOW_POINT;
-        let y = -1. * (rect.offset[1] as f32 - center_y) / SPRITE_PIXELS_PER_WINDOW_POINT;
+        let x = (rect.offset[0] as f32 - center_x) / normalization_factor;
+        let y = -1. * (rect.offset[1] as f32 - center_y) / normalization_factor;
 
-        let w = rect.size[0] as f32 / SPRITE_PIXELS_PER_WINDOW_POINT;
-        let h = rect.size[1] as f32 / SPRITE_PIXELS_PER_WINDOW_POINT;
+        let w = rect.size[0] as f32 / normalization_factor;
+        let h = rect.size[1] as f32 / normalization_factor;
 
         AABB::from_top_left(Vec2 { x, y }, Vec2 { x: w, y: h })
     });
@@ -208,8 +210,8 @@ fn load_sprite(
         hurtbox: sprite.hurtbox.then(|| hurtbox),
         hitbox,
         size: Vec2 {
-            x: sprite_width as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
-            y: sprite_height as f32 / SPRITE_PIXELS_PER_WINDOW_POINT,
+            x: sprite_width as f32 / normalization_factor,
+            y: sprite_height as f32 / normalization_factor,
         },
         duration: sprite.duration,
     }
