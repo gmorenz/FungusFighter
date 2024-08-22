@@ -371,8 +371,14 @@ impl Game {
             GameState::Playing(playing_state) => playing_state.render(),
             GameState::ScoreScreen { winner } => {
                 clear_background(WHITE);
-                let msg = format!("Player {} won!", *winner + 1);
-                draw_text(&msg, Vec2::ZERO, BLACK, TextAlign::Center);
+                let handles = self.session.local_player_handles();
+                let msg =
+                    if handles.len() == 1 {
+                        if *winner == handles[0] { "You won!" } else { "They won :(" }
+                    } else {
+                        &format!("Player {} won!", *winner + 1)
+                    };
+                draw_text(msg, Vec2::ZERO, BLACK, TextAlign::Center);
             }
         }
     }
